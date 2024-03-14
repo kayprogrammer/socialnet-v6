@@ -17,7 +17,7 @@ func (ep Endpoint) GetSiteDetails(c *fiber.Ctx) error {
 
 	db.FirstOrCreate(&sitedetail, sitedetail)
 	responseSiteDetail := schemas.SiteDetailResponseSchema{
-		ResponseSchema: schemas.ResponseSchema{Message: "Site Details Fetched!"}.Init(),
+		ResponseSchema: SuccessResponse("Site Details Fetched!"),
 		Data:           sitedetail,
 	}
 	return c.Status(200).JSON(responseSiteDetail)

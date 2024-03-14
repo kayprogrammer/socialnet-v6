@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gosimple/slug"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm"
@@ -50,7 +51,7 @@ type User struct {
 	Bio             *string    `gorm:"type:varchar(1000);null;" json:"bio"`
 	Dob             *time.Time `gorm:"null;" json:"dob"`
 	CityId          *uuid.UUID `json:"city_id" gorm:"null"`
-	City         *City   `gorm:"constraint:OnDelete:SET NULL"`
+	City            *City      `gorm:"constraint:OnDelete:SET NULL"`
 }
 
 func (user User) FullName() string {
@@ -58,8 +59,31 @@ func (user User) FullName() string {
 }
 
 func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
+	// Hash password
 	user.Password = utils.HashPassword(user.Password)
+
+	// Create username
+	user.Username = user.GenerateUsername(tx)
 	return
+}
+
+func (user *User) GenerateUsername(tx *gorm.DB) (string) {
+	uniqueUsername := slug.Make(user.FirstName + " " + user.LastName)
+	userName := user.Username
+	if userName != "" {
+		uniqueUsername = userName
+	}
+
+	existingUser := User{Username: uniqueUsername}
+	tx.Take(&existingUser, existingUser)
+	if existingUser.ID != uuid.Nil { // username is already taken
+		// Make it unique by attaching a random string
+		// to it and repeat the function
+		randomStr := utils.GetRandomString(6)
+		user.Username = uniqueUsername + "-" + randomStr
+		return user.GenerateUsername(tx)
+	}
+	return uniqueUsername
 }
 
 type Otp struct {
