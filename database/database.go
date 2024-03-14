@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/kayprogrammer/socialnet-v6/config"
+	"github.com/kayprogrammer/socialnet-v6/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -47,6 +49,9 @@ func ConnectDb(cfg config.Config) *gorm.DB {
 		&models.SiteDetail{},
 
 		// accounts
+		&models.Country{},
+		&models.Region{},
+		&models.City{},
 		&models.User{},
 		&models.Otp{},
 	)

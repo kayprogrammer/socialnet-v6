@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/database"
-	"github.com/kayprogrammer/socialnet-v6/initials"
 	"github.com/kayprogrammer/socialnet-v6/routes"
 
 	_ "github.com/kayprogrammer/socialnet-v6/docs"
@@ -63,6 +62,5 @@ func main() {
 
 	routes.SetupRoutes(app, db)
 	// routes.SetupSockets(app)
-	defer db.Close()
 	log.Fatal(app.Listen(":8000"))
 }

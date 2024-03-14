@@ -1,0 +1,109 @@
+basePath: /api/v6
+consumes:
+- application/json
+definitions:
+  models.SiteDetail:
+    properties:
+      address:
+        example: 234, Lagos, Nigeria
+        type: string
+      email:
+        example: kayprogrammer1@gmail.com
+        type: string
+      fb:
+        example: https://facebook.com
+        type: string
+      ig:
+        example: https://instagram.com
+        type: string
+      name:
+        type: string
+      phone:
+        example: "+2348133831036"
+        type: string
+      tw:
+        example: https://twitter.com
+        type: string
+      wh:
+        example: https://wa.me/2348133831036
+        type: string
+    type: object
+  routes.HealthCheckSchema:
+    properties:
+      success:
+        example: pong
+        type: string
+    type: object
+  schemas.SiteDetailResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.SiteDetail'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+info:
+  contact: {}
+  description: |
+    ## A Realtime Social Networking API built with FIBER & GORM ORM.
+
+    ### WEBSOCKETS:
+
+    #### Notifications
+
+    - URL: `wss://{host}/api/v6/ws/notifications`
+
+    - Requires authorization, so pass in the Bearer Authorization header.
+
+    - You can only read and not send notification messages into this socket.
+
+
+    #### Chats
+
+    - URL: `wss://{host}/api/v6/ws/chats/{id}`
+    - Requires authorization, so pass in the Bearer Authorization header.
+    - Use chat_id as the ID for an existing chat or username if it's the first message in a DM.
+    - You cannot read realtime messages from a username that doesn't belong to the authorized user, but you can surely send messages.
+    - Only send a message to the socket endpoint after the message has been created or updated, and files have been uploaded.
+    - Fields when sending a message through the socket:
+
+      ```json
+      { "status": "CREATED", "id": "fe4e0235-80fc-4c94-b15e-3da63226f8ab" }
+      ```
+  title: SOCIALNET API
+  version: "6.0"
+paths:
+  /general/site-detail:
+    get:
+      description: This endpoint retrieves few details of the site/application.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.SiteDetailResponseSchema'
+      summary: Retrieve site details
+      tags:
+      - General
+  /healthcheck:
+    get:
+      description: This endpoint checks the health of our application.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.HealthCheckSchema'
+      summary: HealthCheck
+      tags:
+      - HealthCheck
+produces:
+- application/json
+securityDefinitions:
+  BearerAuth:
+    description: Type 'Bearer jwt_string' to correctly set the API Key
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
