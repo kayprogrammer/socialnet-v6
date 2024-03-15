@@ -21,16 +21,16 @@ type Region struct {
 	BaseModel
 	Name      string    `json:"name" gorm:"type: varchar(255);not null" example:"Lagos"`
 	CountryId uuid.UUID `json:"country_id" gorm:"not null"`
-	Country   Country   `gorm:"constraint:OnDelete:CASCADE"`
+	Country   Country   `gorm:"foreignKey:CountryId;constraint:OnDelete:CASCADE"`
 }
 
 type City struct {
 	BaseModel
 	Name      string     `json:"name" gorm:"type: varchar(255);not null" example:"Lekki"`
 	RegionId  *uuid.UUID `json:"region_id"`
-	Region    *Region    `gorm:"constraint:OnDelete:SET NULL"`
+	Region    *Region    `gorm:"foreignKey:RegionId;constraint:OnDelete:SET NULL"`
 	CountryId uuid.UUID  `json:"country_id" gorm:"not null"`
-	Country   Country    `gorm:"constraint:OnDelete:CASCADE"`
+	Country   Country    `gorm:"foreignKey:CountryId;constraint:OnDelete:CASCADE"`
 }
 
 type User struct {
@@ -51,7 +51,7 @@ type User struct {
 	Bio             *string    `gorm:"type:varchar(1000);null;" json:"bio"`
 	Dob             *time.Time `gorm:"null;" json:"dob"`
 	CityId          *uuid.UUID `json:"city_id" gorm:"null"`
-	City            *City      `gorm:"constraint:OnDelete:SET NULL"`
+	City            *City      `gorm:"foreignKey:CityId;constraint:OnDelete:SET NULL"`
 }
 
 func (user User) FullName() string {
@@ -89,7 +89,7 @@ func (user *User) GenerateUsername(tx *gorm.DB) (string) {
 type Otp struct {
 	BaseModel
 	UserId uuid.UUID `json:"user_id" gorm:"unique"`
-	User   User      `gorm:"constraint:OnDelete:CASCADE"`
+	User   User      `gorm:"foreignKey:UserId;constraint:OnDelete:CASCADE"`
 	Code   uint32    `json:"code"`
 }
 
