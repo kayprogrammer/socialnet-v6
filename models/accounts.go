@@ -13,8 +13,8 @@ import (
 
 type Country struct {
 	BaseModel
-	Name string `json:"name" gorm:"type: varchar(255);not null" example:"Nigeria"`
-	Code string `json:"code" gorm:"type: varchar(255);not null" example:"NG"`
+	Name string `json:"name" gorm:"type: varchar(255);not null;unique" example:"Nigeria"`
+	Code string `json:"code" gorm:"type: varchar(255);not null;unique" example:"NG"`
 }
 
 type Region struct {
@@ -26,11 +26,23 @@ type Region struct {
 
 type City struct {
 	BaseModel
-	Name      string     `json:"name" gorm:"type: varchar(255);not null" example:"Lekki"`
-	RegionId  *uuid.UUID `json:"region_id"`
-	Region    *Region    `gorm:"foreignKey:RegionId;constraint:OnDelete:SET NULL"`
-	CountryId uuid.UUID  `json:"country_id" gorm:"not null"`
-	Country   Country    `gorm:"foreignKey:CountryId;constraint:OnDelete:CASCADE"`
+	Name       string     `json:"name" gorm:"type: varchar(255);not null" example:"Lekki"`
+	RegionId   *uuid.UUID `json:"-"`
+	RegionObj  *Region    `json:"-" gorm:"foreignKey:RegionId;constraint:OnDelete:SET NULL"`
+	Region     *string    `json:"region" gorm:"-" example:"Lagos"`
+	CountryId  uuid.UUID  `json:"-" gorm:"not null"`
+	CountryObj Country    `json:"-" gorm:"foreignKey:CountryId;constraint:OnDelete:CASCADE"`
+	Country    string     `json:"country" gorm:"-" example:"Nigeria"`
+}
+
+func (city City) Init () City {
+	// Set Related Data.
+	region := city.RegionObj
+	if region != nil {
+		city.Region = &region.Name
+	}
+	city.Country = city.CountryObj.Name
+	return city
 }
 
 type User struct {
@@ -67,7 +79,7 @@ func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
-func (user *User) GenerateUsername(tx *gorm.DB) (string) {
+func (user *User) GenerateUsername(tx *gorm.DB) string {
 	uniqueUsername := slug.Make(user.FirstName + " " + user.LastName)
 	userName := user.Username
 	if userName != "" {

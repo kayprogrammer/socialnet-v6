@@ -356,9 +356,103 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/profiles/cities": {
+            "get": {
+                "description": "This endpoint retrieves the first 10 cities that matches the query params",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Retrieve cities based on query params",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City name",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.CitiesResponseSchema"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "models.City": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "type": "string",
+                    "example": "Nigeria"
+                },
+                "countryObj": {
+                    "$ref": "#/definitions/models.Country"
+                },
+                "country_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Lekki"
+                },
+                "region": {
+                    "type": "string",
+                    "example": "Lagos"
+                },
+                "regionObj": {
+                    "$ref": "#/definitions/models.Region"
+                },
+                "region_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Country": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "NG"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Nigeria"
+                }
+            }
+        },
+        "models.Region": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "$ref": "#/definitions/models.Country"
+                },
+                "country_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Lagos"
+                }
+            }
+        },
         "models.SiteDetail": {
             "type": "object",
             "properties": {
@@ -373,6 +467,10 @@ const docTemplate = `{
                 "fb": {
                     "type": "string",
                     "example": "https://facebook.com"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
                 },
                 "ig": {
                     "type": "string",
@@ -401,6 +499,25 @@ const docTemplate = `{
                 "success": {
                     "type": "string",
                     "example": "pong"
+                }
+            }
+        },
+        "schemas.CitiesResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.City"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },

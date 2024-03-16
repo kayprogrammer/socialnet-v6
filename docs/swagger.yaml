@@ -2,6 +2,54 @@ basePath: /api/v6
 consumes:
 - application/json
 definitions:
+  models.City:
+    properties:
+      country:
+        example: Nigeria
+        type: string
+      country_id:
+        type: string
+      countryObj:
+        $ref: '#/definitions/models.Country'
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      name:
+        example: Lekki
+        type: string
+      region:
+        example: Lagos
+        type: string
+      region_id:
+        type: string
+      regionObj:
+        $ref: '#/definitions/models.Region'
+    type: object
+  models.Country:
+    properties:
+      code:
+        example: NG
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      name:
+        example: Nigeria
+        type: string
+    type: object
+  models.Region:
+    properties:
+      country:
+        $ref: '#/definitions/models.Country'
+      country_id:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      name:
+        example: Lagos
+        type: string
+    type: object
   models.SiteDetail:
     properties:
       address:
@@ -12,6 +60,9 @@ definitions:
         type: string
       fb:
         example: https://facebook.com
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
         type: string
       ig:
         example: https://instagram.com
@@ -32,6 +83,19 @@ definitions:
     properties:
       success:
         example: pong
+        type: string
+    type: object
+  schemas.CitiesResponseSchema:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.City'
+        type: array
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
         type: string
     type: object
   schemas.EmailRequestSchema:
@@ -413,6 +477,23 @@ paths:
       summary: HealthCheck
       tags:
       - HealthCheck
+  /profiles/cities:
+    get:
+      description: This endpoint retrieves the first 10 cities that matches the query
+        params
+      parameters:
+      - description: City name
+        in: query
+        name: name
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.CitiesResponseSchema'
+      summary: Retrieve cities based on query params
+      tags:
+      - Profiles
 produces:
 - application/json
 securityDefinitions:

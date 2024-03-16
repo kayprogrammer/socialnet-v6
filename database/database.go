@@ -54,6 +54,17 @@ func ConnectDb(cfg config.Config) *gorm.DB {
 		&models.City{},
 		&models.User{},
 		&models.Otp{},
+
+		// feed
+		&models.Post{},
+		&models.Comment{},
+		&models.Reply{},
+		&models.Reaction{},
+
+		// profiles
+		&models.Friend{},
+		&models.Notification{},
 	)
+	db.Exec("CREATE UNIQUE INDEX unique_requester_requestee ON friends(LEAST(requester_id, requestee_id), GREATEST(requester_id, requestee_id))")
 	return db
 }

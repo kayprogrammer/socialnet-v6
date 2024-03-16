@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/database"
+	"github.com/kayprogrammer/socialnet-v6/initials"
 	"github.com/kayprogrammer/socialnet-v6/routes"
 
 	_ "github.com/kayprogrammer/socialnet-v6/docs"
@@ -28,7 +29,7 @@ import (
 func main() {
 	cfg := config.GetConfig()
 	db := database.ConnectDb(cfg)
-	// initials.CreateInitialData(db)
+	initials.CreateInitialData(cfg, db)
 
 	app := fiber.New()
 
