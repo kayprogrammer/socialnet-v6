@@ -7,10 +7,8 @@ definitions:
       country:
         example: Nigeria
         type: string
-      country_id:
+      created_at:
         type: string
-      countryObj:
-        $ref: '#/definitions/models.Country'
       id:
         example: d10dde64-a242-4ed0-bd75-4c759644b3a6
         type: string
@@ -20,40 +18,15 @@ definitions:
       region:
         example: Lagos
         type: string
-      region_id:
-        type: string
-      regionObj:
-        $ref: '#/definitions/models.Region'
-    type: object
-  models.Country:
-    properties:
-      code:
-        example: NG
-        type: string
-      id:
-        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
-        type: string
-      name:
-        example: Nigeria
-        type: string
-    type: object
-  models.Region:
-    properties:
-      country:
-        $ref: '#/definitions/models.Country'
-      country_id:
-        type: string
-      id:
-        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
-        type: string
-      name:
-        example: Lagos
+      updated_at:
         type: string
     type: object
   models.SiteDetail:
     properties:
       address:
         example: 234, Lagos, Nigeria
+        type: string
+      created_at:
         type: string
       email:
         example: kayprogrammer1@gmail.com
@@ -75,8 +48,42 @@ definitions:
       tw:
         example: https://twitter.com
         type: string
+      updated_at:
+        type: string
       wh:
         example: https://wa.me/2348133831036
+        type: string
+    type: object
+  models.User:
+    properties:
+      avatar:
+        type: string
+      bio:
+        type: string
+      city:
+        type: string
+      created_at:
+        type: string
+      dob:
+        type: string
+      email:
+        example: johndoe@email.com
+        type: string
+      first_name:
+        example: John
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      last_name:
+        example: Doe
+        type: string
+      terms_agreement:
+        type: boolean
+      updated_at:
+        type: string
+      username:
+        example: john-doe
         type: string
     type: object
   routes.HealthCheckSchema:
@@ -118,6 +125,33 @@ definitions:
     required:
     - email
     - password
+    type: object
+  schemas.ProfilesResponseDataSchema:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
+  schemas.ProfilesResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.ProfilesResponseDataSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
     type: object
   schemas.RefreshTokenSchema:
     properties:
@@ -477,6 +511,25 @@ paths:
       summary: HealthCheck
       tags:
       - HealthCheck
+  /profiles:
+    get:
+      description: This endpoint retrieves a paginated list of users
+      parameters:
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ProfilesResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Retrieve Users
+      tags:
+      - Profiles
   /profiles/cities:
     get:
       description: This endpoint retrieves the first 10 cities that matches the query

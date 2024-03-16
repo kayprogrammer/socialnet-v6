@@ -35,7 +35,7 @@ type City struct {
 	Country    string     `json:"country" gorm:"-" example:"Nigeria"`
 }
 
-func (city City) Init () City {
+func (city City) Init() City {
 	// Set Related Data.
 	region := city.RegionObj
 	if region != nil {
@@ -47,27 +47,53 @@ func (city City) Init () City {
 
 type User struct {
 	BaseModel
-	FirstName       string     `json:"first_name" gorm:"type: varchar(255);not null" validate:"required,max=255" example:"John"`
-	LastName        string     `json:"last_name" gorm:"type: varchar(255);not null" validate:"required,max=255" example:"Doe"`
-	Username        string     `json:"username" gorm:"type: varchar(1000);not null;unique;" validate:"required,max=255" example:"john-doe"`
-	Email           string     `json:"email" gorm:"not null;unique;" validate:"required,min=5,email" example:"johndoe@email.com"`
-	Password        string     `json:"password" gorm:"not null" validate:"required,min=8,max=50" example:"strongpassword"`
-	IsEmailVerified bool       `json:"is_email_verified" gorm:"default:false" swaggerignore:"true"`
-	IsSuperuser     bool       `json:"is_superuser" gorm:"default:false" swaggerignore:"true"`
-	IsStaff         bool       `json:"is_staff" gorm:"default:false" swaggerignore:"true"`
-	TermsAgreement  bool       `json:"terms_agreement" gorm:"default:false" validate:"eq=true"`
-	AvatarId        *uuid.UUID `json:"avatar_id" gorm:"null" swagger:"ignore" swaggerignore:"true"`
-	Avatar          *File      `gorm:"foreignKey:AvatarId;constraint:OnDelete:SET NULL;null;" swaggerignore:"true"`
-	Access          *string    `gorm:"type:varchar(1000);null;" json:"access"`
-	Refresh         *string    `gorm:"type:varchar(1000);null;" json:"refresh"`
+	FirstName       string     `json:"first_name" gorm:"type: varchar(255);not null" example:"John"`
+	LastName        string     `json:"last_name" gorm:"type: varchar(255);not null" example:"Doe"`
+	Username        string     `json:"username" gorm:"type: varchar(1000);not null;unique;" example:"john-doe"`
+	Email           string     `json:"email" gorm:"not null;unique;" example:"johndoe@email.com"`
+	Password        string     `json:"-" gorm:"not null"`
+	IsEmailVerified bool       `json:"-" gorm:"default:false"`
+	IsSuperuser     bool       `json:"-" gorm:"default:false"`
+	IsStaff         bool       `json:"-" gorm:"default:false"`
+	TermsAgreement  bool       `json:"-" gorm:"default:false"`
+	AvatarId        *uuid.UUID `json:"-" gorm:"null"`
+	AvatarObj       *File      `json:"-" gorm:"foreignKey:AvatarId;constraint:OnDelete:SET NULL;null;"`
+	Avatar          *string    `json:"avatar"`
+	Access          *string    `gorm:"type:varchar(1000);null;" json:"-"`
+	Refresh         *string    `gorm:"type:varchar(1000);null;" json:"-"`
 	Bio             *string    `gorm:"type:varchar(1000);null;" json:"bio"`
 	Dob             *time.Time `gorm:"null;" json:"dob"`
-	CityId          *uuid.UUID `json:"city_id" gorm:"null"`
-	City            *City      `gorm:"foreignKey:CityId;constraint:OnDelete:SET NULL"`
+	CityId          *uuid.UUID `json:"-" gorm:"null"`
+	CityObj         *City      `json:"-" gorm:"foreignKey:CityId;constraint:OnDelete:SET NULL"`
+	City            *string    `json:"city"`
+}
+
+func (user User) Init() User {
+	// user.BaseModel.ID = uuid.Nil
+	user.Avatar = user.GetAvatarUrl()
+	user.City = user.GetCityName()
+	return user
 }
 
 func (user User) FullName() string {
 	return fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+}
+
+func (user User) GetCityName() *string {
+	city := user.CityObj
+	if city != nil {
+		return &city.Name
+	}
+	return nil
+}
+
+func (user User) GetAvatarUrl() *string {
+	avatar := user.AvatarObj
+	if avatar != nil {
+		url := utils.GenerateFileUrl(avatar.ID.String(), "avatars", avatar.ResourceType)
+		return &url
+	}
+	return nil
 }
 
 func (user *User) BeforeCreate(tx *gorm.DB) (err error) {

@@ -26,7 +26,7 @@ func createSuperUser(cfg config.Config, db *gorm.DB) models.User {
 func createClient(cfg config.Config, db *gorm.DB) models.User {
 	user := models.User{
 		FirstName:       "Test",
-		LastName:        "Admin",
+		LastName:        "Client",
 		Email:           cfg.FirstClientEmail,
 		Password:        cfg.FirstClientPassword,
 		IsEmailVerified: true,

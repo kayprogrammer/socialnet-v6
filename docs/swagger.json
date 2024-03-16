@@ -349,6 +349,37 @@
                 }
             }
         },
+        "/profiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint retrieves a paginated list of users",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Retrieve Users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ProfilesResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/profiles/cities": {
             "get": {
                 "description": "This endpoint retrieves the first 10 cities that matches the query params",
@@ -383,10 +414,7 @@
                     "type": "string",
                     "example": "Nigeria"
                 },
-                "countryObj": {
-                    "$ref": "#/definitions/models.Country"
-                },
-                "country_id": {
+                "created_at": {
                     "type": "string"
                 },
                 "id": {
@@ -401,47 +429,8 @@
                     "type": "string",
                     "example": "Lagos"
                 },
-                "regionObj": {
-                    "$ref": "#/definitions/models.Region"
-                },
-                "region_id": {
+                "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "models.Country": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "example": "NG"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Nigeria"
-                }
-            }
-        },
-        "models.Region": {
-            "type": "object",
-            "properties": {
-                "country": {
-                    "$ref": "#/definitions/models.Country"
-                },
-                "country_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Lagos"
                 }
             }
         },
@@ -451,6 +440,9 @@
                 "address": {
                     "type": "string",
                     "example": "234, Lagos, Nigeria"
+                },
+                "created_at": {
+                    "type": "string"
                 },
                 "email": {
                     "type": "string",
@@ -479,9 +471,58 @@
                     "type": "string",
                     "example": "https://twitter.com"
                 },
+                "updated_at": {
+                    "type": "string"
+                },
                 "wh": {
                     "type": "string",
                     "example": "https://wa.me/2348133831036"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "dob": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "johndoe@email.com"
+                },
+                "first_name": {
+                    "type": "string",
+                    "example": "John"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Doe"
+                },
+                "terms_agreement": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john-doe"
                 }
             }
         },
@@ -540,6 +581,45 @@
                 "password": {
                     "type": "string",
                     "example": "password"
+                }
+            }
+        },
+        "schemas.ProfilesResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                }
+            }
+        },
+        "schemas.ProfilesResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.ProfilesResponseDataSchema"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },

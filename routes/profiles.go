@@ -37,34 +37,40 @@ func (endpoint Endpoint) RetrieveCities(c *fiber.Ctx) error {
 	return c.Status(200).JSON(response)
 }
 
-// // @Summary Retrieve Users
-// // @Description This endpoint retrieves a paginated list of users
-// // @Tags Profiles
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.ProfilesResponseSchema
-// // @Router /profiles [get]
-// // @Security BearerAuth
-// func (endpoint Endpoint) RetrieveUsers(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// @Summary Retrieve Users
+// @Description This endpoint retrieves a paginated list of users
+// @Tags Profiles
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.ProfilesResponseSchema
+// @Router /profiles [get]
+// @Security BearerAuth
+func (endpoint Endpoint) RetrieveUsers(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := c.Locals("user").(*models.User)
 
-// 	users := userProfileManager.GetUsers(db, user)
+	users := []models.User{}
+	if user == nil {
+		db.Preload(clause.Associations).Find(&users)
+	} else {
+		db.Preload(clause.Associations).Not(models.User{BaseModel: models.BaseModel{ID: user.ID}}).Find(&users)
+	}
 
-// 	// Paginate, Convert type and return Users
-// 	paginatedData, paginatedUsers, err := PaginateQueryset(users, c)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedProfiles := utils.ConvertStructData(paginatedUsers, []schemas.ProfileSchema{}).(*[]schemas.ProfileSchema)
-// 	response := schemas.ProfilesResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Users fetched"}.Init(),
-// 		Data: schemas.ProfilesResponseDataSchema{
-// 			PaginatedResponseDataSchema: *paginatedData,
-// 			Items:                       *convertedProfiles,
-// 		}.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Paginate, Convert type and return Users
+	paginatedData, paginatedUsers, err := PaginateQueryset(users, c)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	users = paginatedUsers.([]models.User)
+
+	response := schemas.ProfilesResponseSchema{
+		ResponseSchema: SuccessResponse("Users fetched"),
+		Data: schemas.ProfilesResponseDataSchema{
+			PaginatedResponseDataSchema: *paginatedData,
+			Items:                       users,
+		}.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
 // // @Summary Retrieve User Profile
 // // @Description This endpoint retrieves a user profile

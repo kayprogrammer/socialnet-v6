@@ -35,5 +35,6 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// // Profile Routes ()
 	profilesRouter := api.Group("/profiles")
 	profilesRouter.Get("/cities", endpoint.RetrieveCities)
+	profilesRouter.Get("", endpoint.GuestMiddleware, endpoint.RetrieveUsers)
 
 }

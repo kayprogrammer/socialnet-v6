@@ -158,26 +158,26 @@ func (data CitiesResponseSchema) Init () CitiesResponseSchema {
 	return data
 }
 
-// // USERS
-// type ProfilesResponseDataSchema struct {
-// 	PaginatedResponseDataSchema
-// 	Items			[]ProfileSchema		`json:"users"`
-// }
+// USERS
+type ProfilesResponseDataSchema struct {
+	PaginatedResponseDataSchema
+	Items			[]models.User		`json:"users"`
+}
 
-// func (data ProfilesResponseDataSchema) Init () ProfilesResponseDataSchema {
-// 	// Set Initial Data
-// 	items := data.Items
-// 	for i := range items {
-// 		items[i] = items[i].Init()
-// 	}
-// 	data.Items = items
-// 	return data
-// }
+func (data ProfilesResponseDataSchema) Init () ProfilesResponseDataSchema {
+	// Set Initial Data
+	items := data.Items
+	for i := range items {
+		items[i] = items[i].Init()
+	}
+	data.Items = items
+	return data
+}
 
-// type ProfilesResponseSchema struct {
-// 	ResponseSchema
-// 	Data			ProfilesResponseDataSchema		`json:"data"`
-// }
+type ProfilesResponseSchema struct {
+	ResponseSchema
+	Data			ProfilesResponseDataSchema		`json:"data"`
+}
 
 // type ProfileResponseSchema struct {
 // 	ResponseSchema
