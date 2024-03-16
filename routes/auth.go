@@ -2,7 +2,6 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/senders"
@@ -29,7 +28,7 @@ func (ep Endpoint) Register(c *fiber.Ctx) error {
 	user := utils.ConvertStructData(data, models.User{}).(*models.User)
 	// Validate email uniqueness
 	db.Take(&user, models.User{Email: user.Email})
-	if user.ID != uuid.Nil {
+	if user.ID != nil {
 		data := map[string]string{
 			"email": "Email already taken!",
 		}
@@ -71,7 +70,7 @@ func (ep Endpoint) VerifyEmail(c *fiber.Ctx) error {
 
 	user := models.User{Email: data.Email}
 	db.Take(&user, user)
-	if user.ID == uuid.Nil {
+	if user.ID == nil {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_INCORRECT_EMAIL, "Incorrect Email"))
 	}
 
@@ -81,7 +80,7 @@ func (ep Endpoint) VerifyEmail(c *fiber.Ctx) error {
 
 	otp := models.Otp{UserId: user.ID}
 	db.Take(&otp, otp)
-	if otp.ID == uuid.Nil || otp.Code != data.Otp {
+	if otp.ID == nil || otp.Code != data.Otp {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_INCORRECT_OTP, "Incorrect Otp"))
 	}
 
@@ -117,7 +116,7 @@ func (ep Endpoint) ResendVerificationEmail(c *fiber.Ctx) error {
 
 	user := models.User{Email: data.Email}
 	db.Take(&user, user)
-	if user.ID == uuid.Nil {
+	if user.ID == nil {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_INCORRECT_EMAIL, "Incorrect Email"))
 	}
 
@@ -154,7 +153,7 @@ func (ep Endpoint) SendPasswordResetOtp(c *fiber.Ctx) error {
 
 	user := models.User{Email: data.Email}
 	db.Take(&user, user)
-	if user.ID == uuid.Nil {
+	if user.ID == nil {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_INCORRECT_EMAIL, "Incorrect Email"))
 	}
 
@@ -187,13 +186,13 @@ func (ep Endpoint) SetNewPassword(c *fiber.Ctx) error {
 
 	user := models.User{Email: data.Email}
 	db.Take(&user, user)
-	if user.ID == uuid.Nil {
+	if user.ID == nil {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_INCORRECT_EMAIL, "Incorrect Email"))
 	}
 
 	otp := models.Otp{UserId: user.ID}
 	db.Take(&otp, otp)
-	if otp.ID == uuid.Nil || otp.Code != data.Otp {
+	if otp.ID == nil || otp.Code != data.Otp {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_INCORRECT_OTP, "Incorrect Otp"))
 	}
 
@@ -232,7 +231,7 @@ func (ep Endpoint) Login(c *fiber.Ctx) error {
 
 	user := models.User{Email: data.Email}
 	db.Take(&user, user)
-	if user.ID == uuid.Nil || !utils.CheckPasswordHash(data.Password, user.Password) {
+	if user.ID == nil || !utils.CheckPasswordHash(data.Password, user.Password) {
 		return c.Status(401).JSON(utils.RequestErr(utils.ERR_INVALID_CREDENTIALS, "Invalid Credentials"))
 	}
 
@@ -275,7 +274,7 @@ func (ep Endpoint) Refresh(c *fiber.Ctx) error {
 	token := data.Refresh
 	user := models.User{Refresh: &token}
 	db.Take(&user, user)
-	if user.ID == uuid.Nil || !DecodeRefreshToken(token) {
+	if user.ID == nil || !DecodeRefreshToken(token) {
 		return c.Status(401).JSON(utils.RequestErr(utils.ERR_INVALID_TOKEN, "Refresh token is invalid or expired"))
 
 	}

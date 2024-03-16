@@ -2,8 +2,7 @@ package models
 
 import (
 	"fmt"
-
-	"github.com/google/uuid"
+	"github.com/pborman/uuid"
 	"gorm.io/gorm"
 )
 

@@ -3,9 +3,8 @@ package routes
 import (
 	"log"
 	"time"
-
+	"github.com/pborman/uuid"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/utils"

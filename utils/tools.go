@@ -60,14 +60,14 @@ func intPow(base, exponent int) int {
 
 // PASSWORD HASHING
 func HashPassword(password string) string {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 8)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 8)
 	log.Println(err)
-    return string(bytes)
+	return string(bytes)
 }
 
 func CheckPasswordHash(password, hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-    return err == nil
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
 // UUID PARSER
@@ -75,17 +75,17 @@ func ParseUUID(input string) (*uuid.UUID, *ErrorResponse) {
 	uuidVal, err := uuid.Parse(input)
 	if err != nil {
 		errData := RequestErr(ERR_INVALID_VALUE, "Invalid UUID")
-		return nil, &errData 
+		return nil, &errData
 	}
 	return &uuidVal, nil
 }
 
 // Check if keys exist in map
 func KeysExistInMap(keys []string, myMap map[string]interface{}) bool {
-    for _, key := range keys {
-        if _, ok := myMap[key]; !ok {
-            return false
-        }
-    }
-    return true
+	for _, key := range keys {
+		if _, ok := myMap[key]; !ok {
+			return false
+		}
+	}
+	return true
 }

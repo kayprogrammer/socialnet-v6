@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/utils"
+	"github.com/pborman/uuid"
 	"gorm.io/gorm"
 )
 
@@ -69,7 +69,7 @@ type User struct {
 }
 
 func (user User) Init() User {
-	// user.BaseModel.ID = uuid.Nil
+	user.ID = nil // Omit ID
 	user.Avatar = user.GetAvatarUrl()
 	user.City = user.GetCityName()
 	return user
@@ -114,7 +114,7 @@ func (user *User) GenerateUsername(tx *gorm.DB) string {
 
 	existingUser := User{Username: uniqueUsername}
 	tx.Take(&existingUser, existingUser)
-	if existingUser.ID != uuid.Nil { // username is already taken
+	if existingUser.ID != nil { // username is already taken
 		// Make it unique by attaching a random string
 		// to it and repeat the function
 		randomStr := utils.GetRandomString(6)
