@@ -36,5 +36,14 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	profilesRouter := api.Group("/profiles")
 	profilesRouter.Get("/cities", endpoint.RetrieveCities)
 	profilesRouter.Get("", endpoint.GuestMiddleware, endpoint.RetrieveUsers)
+	profilesRouter.Get("/profile/:username", endpoint.RetrieveUserProfile)
+	// profilesRouter.Patch("/profile", midw.AuthMiddleware, endpoint.UpdateProfile)
+	// profilesRouter.Post("/profile", midw.AuthMiddleware, endpoint.DeleteUser)
+	// profilesRouter.Get("/friends", midw.AuthMiddleware, endpoint.RetrieveFriends)
+	// profilesRouter.Get("/friends/requests", midw.AuthMiddleware, endpoint.RetrieveFriendRequests)
+	// profilesRouter.Post("/friends/requests", midw.AuthMiddleware, endpoint.SendOrDeleteFriendRequest)
+	// profilesRouter.Put("/friends/requests", midw.AuthMiddleware, endpoint.AcceptOrRejectFriendRequest)
+	// profilesRouter.Get("/notifications", midw.AuthMiddleware, endpoint.RetrieveUserNotifications)
+	// profilesRouter.Post("/notifications", midw.AuthMiddleware, endpoint.ReadNotification)
 
 }

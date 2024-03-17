@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
+	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm/clause"
 )
 
@@ -49,12 +50,11 @@ func (endpoint Endpoint) RetrieveUsers(c *fiber.Ctx) error {
 	user := c.Locals("user").(*models.User)
 
 	users := []models.User{}
-	if user == nil {
-		db.Preload(clause.Associations).Find(&users)
-	} else {
-		db.Preload(clause.Associations).Not(models.User{BaseModel: models.BaseModel{ID: user.ID}}).Find(&users)
+	query := db.Preload(clause.Associations)
+	if user != nil {
+		query.Not(models.User{BaseModel: models.BaseModel{ID: user.ID}})
 	}
-
+	query.Find(&users)
 	// Paginate, Convert type and return Users
 	paginatedData, paginatedUsers, err := PaginateQueryset(users, c)
 	if err != nil {
@@ -72,29 +72,29 @@ func (endpoint Endpoint) RetrieveUsers(c *fiber.Ctx) error {
 	return c.Status(200).JSON(response)
 }
 
-// // @Summary Retrieve User Profile
-// // @Description This endpoint retrieves a user profile
-// // @Tags Profiles
-// // @Param username path string true "Username of user"
-// // @Success 200 {object} schemas.ProfileResponseSchema
-// // @Router /profiles/profile/{username} [get]
-// func (endpoint Endpoint) RetrieveUserProfile(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	username := c.Params("username")
+// @Summary Retrieve User Profile
+// @Description This endpoint retrieves a user profile
+// @Tags Profiles
+// @Param username path string true "Username of user"
+// @Success 200 {object} schemas.ProfileResponseSchema
+// @Router /profiles/profile/{username} [get]
+func (endpoint Endpoint) RetrieveUserProfile(c *fiber.Ctx) error {
+	db := endpoint.DB
+	username := c.Params("username")
 
-// 	user, errData := userProfileManager.GetByUsername(db, username)
-// 	if errData != nil {
-// 		return c.Status(404).JSON(errData)
-// 	}
+	user := models.User{}
+	db.Preload(clause.Associations).Take(&user, models.User{Username: username})
+	if user.ID == nil {
+		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "No user with that username"))
+	}
 
-// 	// Convert type and return User
-// 	convertedProfile := utils.ConvertStructData(user, schemas.ProfileSchema{}).(*schemas.ProfileSchema)
-// 	response := schemas.ProfileResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "User details fetched"}.Init(),
-// 		Data:           convertedProfile.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Return User
+	response := schemas.ProfileResponseSchema{
+		ResponseSchema: SuccessResponse("User details fetched"),
+		Data:           user.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
 // // @Summary Update User Profile
 // // @Description This endpoint updates a user profile

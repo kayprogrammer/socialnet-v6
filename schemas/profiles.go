@@ -179,10 +179,10 @@ type ProfilesResponseSchema struct {
 	Data			ProfilesResponseDataSchema		`json:"data"`
 }
 
-// type ProfileResponseSchema struct {
-// 	ResponseSchema
-// 	Data			ProfileSchema		`json:"data"`
-// }
+type ProfileResponseSchema struct {
+	ResponseSchema
+	Data			models.User		`json:"data"`
+}
 
 // type ProfileUpdateResponseDataSchema struct {
 // 	ProfileSchema

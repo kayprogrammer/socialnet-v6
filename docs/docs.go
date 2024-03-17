@@ -412,6 +412,32 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/profiles/profile/{username}": {
+            "get": {
+                "description": "This endpoint retrieves a user profile",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Retrieve User Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username of user",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ProfileResponseSchema"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -522,9 +548,6 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Doe"
                 },
-                "terms_agreement": {
-                    "type": "boolean"
-                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -589,6 +612,22 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "password"
+                }
+            }
+        },
+        "schemas.ProfileResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },
