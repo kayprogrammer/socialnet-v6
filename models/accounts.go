@@ -58,14 +58,14 @@ type User struct {
 	TermsAgreement  bool       `json:"-" gorm:"default:false"`
 	AvatarId        *uuid.UUID `json:"-" gorm:"null"`
 	AvatarObj       *File      `json:"-" gorm:"foreignKey:AvatarId;constraint:OnDelete:SET NULL;null;"`
-	Avatar          *string    `json:"avatar"`
+	Avatar          *string    `json:"avatar" example:"https://img.com"`
 	Access          *string    `gorm:"type:varchar(1000);null;" json:"-"`
 	Refresh         *string    `gorm:"type:varchar(1000);null;" json:"-"`
-	Bio             *string    `gorm:"type:varchar(1000);null;" json:"bio"`
+	Bio             *string    `gorm:"type:varchar(1000);null;" json:"bio" example:"Software Engineer | Go Fiber Developer"`
 	Dob             *time.Time `gorm:"null;" json:"dob"`
 	CityId          *uuid.UUID `json:"-" gorm:"null"`
 	CityObj         *City      `json:"-" gorm:"foreignKey:CityId;constraint:OnDelete:SET NULL"`
-	City            *string    `json:"city"`
+	City            *string    `json:"city" example:"Lekki"`
 }
 
 func (user User) Init() User {

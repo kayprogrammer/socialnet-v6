@@ -413,6 +413,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/profiles/profile": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint updates a user profile",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Update User Profile",
+                "parameters": [
+                    {
+                        "description": "Profile object",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ProfileUpdateSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ProfileResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/profiles/profile/{username}": {
             "get": {
                 "description": "This endpoint retrieves a user profile",
@@ -518,12 +551,18 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://img.com"
                 },
                 "bio": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Software Engineer | Go Fiber Developer"
                 },
                 "city": {
+                    "type": "string",
+                    "example": "Lekki"
+                },
+                "city_id": {
                     "type": "string"
                 },
                 "created_at": {
@@ -628,6 +667,40 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "success"
+                }
+            }
+        },
+        "schemas.ProfileUpdateSchema": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "example": "Software Engineer | Go Fiber Developer"
+                },
+                "city_id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "dob": {
+                    "type": "string",
+                    "example": "2001-01-16T00:00:00.106416+01:00"
+                },
+                "file_type": {
+                    "type": "string",
+                    "example": "image/jpeg"
+                },
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1,
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1,
+                    "example": "Doe"
                 }
             }
         },

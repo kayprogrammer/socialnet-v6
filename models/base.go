@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
+	"gorm.io/gorm"
 )
 
 type BaseModel struct {
@@ -15,4 +16,14 @@ type BaseModel struct {
 type File struct {
 	BaseModel
 	ResourceType string `json:"resource_type" gorm:"not null"`
+}
+
+func (f File) UpdateOrCreate (db *gorm.DB, id *uuid.UUID) File {
+	if id == nil {
+		db.Create(&f)
+	} else {
+		db.Model(File{BaseModel: BaseModel{ID: *id}}).Updates(&f)
+		f.ID = *id
+	}
+	return f
 }

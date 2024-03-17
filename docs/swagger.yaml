@@ -57,10 +57,15 @@ definitions:
   models.User:
     properties:
       avatar:
+        example: https://img.com
         type: string
       bio:
+        example: Software Engineer | Go Fiber Developer
         type: string
       city:
+        example: Lekki
+        type: string
+      city_id:
         type: string
       created_at:
         type: string
@@ -133,6 +138,32 @@ definitions:
         type: string
       status:
         example: success
+        type: string
+    type: object
+  schemas.ProfileUpdateSchema:
+    properties:
+      bio:
+        example: Software Engineer | Go Fiber Developer
+        maxLength: 200
+        type: string
+      city_id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      dob:
+        example: "2001-01-16T00:00:00.106416+01:00"
+        type: string
+      file_type:
+        example: image/jpeg
+        type: string
+      first_name:
+        example: John
+        maxLength: 50
+        minLength: 1
+        type: string
+      last_name:
+        example: Doe
+        maxLength: 50
+        minLength: 1
         type: string
     type: object
   schemas.ProfilesResponseDataSchema:
@@ -554,6 +585,26 @@ paths:
           schema:
             $ref: '#/definitions/schemas.CitiesResponseSchema'
       summary: Retrieve cities based on query params
+      tags:
+      - Profiles
+  /profiles/profile:
+    patch:
+      description: This endpoint updates a user profile
+      parameters:
+      - description: Profile object
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.ProfileUpdateSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ProfileResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Update User Profile
       tags:
       - Profiles
   /profiles/profile/{username}:

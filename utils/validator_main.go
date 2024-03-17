@@ -27,6 +27,10 @@ func init() {
 	translator, _ = uni.GetTranslator("en")
 
 	// Register Custom Validators
+	customValidator.RegisterValidation("date", DateValidator)
+	customValidator.RegisterValidation("reaction_type_validator", ReactionTypeValidator)
+	customValidator.RegisterValidation("file_type_validator", FileTypeValidator)
+	customValidator.RegisterValidation("usernames_to_update_validator", DistinctField)
 
 	customValidator.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]

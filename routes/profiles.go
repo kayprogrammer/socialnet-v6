@@ -96,50 +96,59 @@ func (endpoint Endpoint) RetrieveUserProfile(c *fiber.Ctx) error {
 	return c.Status(200).JSON(response)
 }
 
-// // @Summary Update User Profile
-// // @Description This endpoint updates a user profile
-// // @Tags Profiles
-// // @Param profile body schemas.ProfileUpdateSchema true "Profile object"
-// // @Success 200 {object} schemas.ProfileResponseSchema
-// // @Router /profiles/profile [patch]
-// // @Security BearerAuth
-// func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// @Summary Update User Profile
+// @Description This endpoint updates a user profile
+// @Tags Profiles
+// @Param profile body schemas.ProfileUpdateSchema true "Profile object"
+// @Success 200 {object} schemas.ProfileResponseSchema
+// @Router /profiles/profile [patch]
+// @Security BearerAuth
+func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := c.Locals("user").(*models.User)
 
-// 	profileData := schemas.ProfileUpdateSchema{}
+	data := schemas.ProfileUpdateSchema{}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &profileData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(profileData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate City Value
-// 	cityID := profileData.CityID
-// 	if cityID != nil {
-// 		city := cityManager.GetByID(db, *cityID)
-// 		if city == nil {
-// 			data := map[string]string{
-// 				"city_id": "No city with that ID",
-// 			}
-// 			return c.Status(422).JSON(utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data))
-// 		}
-// 		profileData.City = city
-// 	}
+	// Validate City Value
+	cityID := data.CityID
+	if cityID != nil {
+		city := models.City{}
+		db.Take(&city, models.City{BaseModel: models.BaseModel{ID: *cityID}})
+		if city.ID == nil {
+			data := map[string]string{
+				"city_id": "No city with that ID",
+			}
+			return c.Status(422).JSON(utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data))
+		}
+		user.CityObj = &city
+	}
 
-// 	updatedProfile := userProfileManager.Update(db, user, profileData)
+	// Create OR Update File
+	fileType := data.FileType
+	if fileType != nil {
+		file := models.File{ResourceType: *fileType}.UpdateOrCreate(db, user.AvatarId)
+		user.AvatarObj = &file
+	}
 
-// 	// Convert type and return User
-// 	convertedProfile := utils.ConvertStructData(updatedProfile, schemas.ProfileUpdateResponseDataSchema{}).(*schemas.ProfileUpdateResponseDataSchema)
-// 	response := schemas.ProfileUpdateResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "User updated"}.Init(),
-// 		Data:           convertedProfile.Init(profileData.FileType),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Set values & save
+	user = data.SetValues(user)
+	db.Save(&user)
+
+	// Return repsonse
+	updatedData := schemas.ProfileUpdateResponseDataSchema{
+		User: *user,
+	}.Init(fileType)
+	response := schemas.ProfileUpdateResponseSchema{
+		ResponseSchema: SuccessResponse("User updated"),
+		Data:           updatedData,
+	}
+	return c.Status(200).JSON(response)
+}
 
 // // @Summary Delete User's Account
 // // @Description This endpoint deletes a particular user's account (irreversible)
