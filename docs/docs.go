@@ -414,6 +414,37 @@ const docTemplate = `{
             }
         },
         "/profiles/profile": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint deletes a particular user's account (irreversible)",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Delete User's Account",
+                "parameters": [
+                    {
+                        "description": "Password",
+                        "name": "password",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.DeleteUserSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ResponseSchema"
+                        }
+                    }
+                }
+            },
             "patch": {
                 "security": [
                     {
@@ -562,9 +593,6 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Lekki"
                 },
-                "city_id": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -621,6 +649,18 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "success"
+                }
+            }
+        },
+        "schemas.DeleteUserSchema": {
+            "type": "object",
+            "required": [
+                "password"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "password"
                 }
             }
         },

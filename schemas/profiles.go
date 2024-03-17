@@ -24,9 +24,9 @@ func (p ProfileUpdateSchema) SetValues (user *models.User) *models.User {
 	user.Dob = p.Dob
 	return user
 }
-// type DeleteUserSchema struct {
-// 	Password 		string		`json:"password" validate:"required" example:"password"`
-// }
+type DeleteUserSchema struct {
+	Password 		string		`json:"password" validate:"required" example:"password"`
+}
 
 // type SendFriendRequestSchema struct {
 // 	Username		string		`json:"username" validate:"required" example:"john-doe"`

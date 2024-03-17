@@ -38,7 +38,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	profilesRouter.Get("", endpoint.GuestMiddleware, endpoint.RetrieveUsers)
 	profilesRouter.Get("/profile/:username", endpoint.RetrieveUserProfile)
 	profilesRouter.Patch("/profile", endpoint.AuthMiddleware, endpoint.UpdateProfile)
-	// profilesRouter.Post("/profile", endpoint.AuthMiddleware, endpoint.DeleteUser)
+	profilesRouter.Post("/profile", endpoint.AuthMiddleware, endpoint.DeleteUser)
 	// profilesRouter.Get("/friends", endpoint.AuthMiddleware, endpoint.RetrieveFriends)
 	// profilesRouter.Get("/friends/requests", endpoint.AuthMiddleware, endpoint.RetrieveFriendRequests)
 	// profilesRouter.Post("/friends/requests", endpoint.AuthMiddleware, endpoint.SendOrDeleteFriendRequest)

@@ -150,42 +150,36 @@ func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
 	return c.Status(200).JSON(response)
 }
 
-// // @Summary Delete User's Account
-// // @Description This endpoint deletes a particular user's account (irreversible)
-// // @Tags Profiles
-// // @Param password body schemas.DeleteUserSchema true "Password"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /profiles/profile [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) DeleteUser(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// @Summary Delete User's Account
+// @Description This endpoint deletes a particular user's account (irreversible)
+// @Tags Profiles
+// @Param password body schemas.DeleteUserSchema true "Password"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /profiles/profile [post]
+// @Security BearerAuth
+func (endpoint Endpoint) DeleteUser(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := c.Locals("user").(*models.User)
 
-// 	deleteUserData := schemas.DeleteUserSchema{}
+	data := schemas.DeleteUserSchema{}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &deleteUserData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(deleteUserData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Check if password is valid
-// 	if !utils.CheckPasswordHash(deleteUserData.Password, user.Password) {
-// 		data := map[string]string{
-// 			"password": "Incorrect password",
-// 		}
-// 		return c.Status(422).JSON(utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data))
-// 	}
+	// Check if password is valid
+	if !utils.CheckPasswordHash(data.Password, user.Password) {
+		data := map[string]string{
+			"password": "Incorrect password",
+		}
+		return c.Status(422).JSON(utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data))
+	}
 
-// 	// Delete User
-// 	db.User.DeleteOne(user).Exec(managers.Ctx)
-// 	response := schemas.ResponseSchema{Message: "User deleted"}.Init()
-// 	return c.Status(200).JSON(response)
-// }
-
-// var friendManager = managers.FriendManager{}
+	// Delete User
+	db.Delete(&user)
+	return c.Status(200).JSON(SuccessResponse("User deleted"))
+}
 
 // // @Summary Retrieve Friends
 // // @Description This endpoint retrieves friends of a user
