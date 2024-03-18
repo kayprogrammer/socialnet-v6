@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/utils"
@@ -181,34 +182,34 @@ func (endpoint Endpoint) DeleteUser(c *fiber.Ctx) error {
 	return c.Status(200).JSON(SuccessResponse("User deleted"))
 }
 
-// // @Summary Retrieve Friends
-// // @Description This endpoint retrieves friends of a user
-// // @Tags Profiles
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.ProfilesResponseSchema
-// // @Router /profiles/friends [get]
-// // @Security BearerAuth
-// func (endpoint Endpoint) RetrieveFriends(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+var friendManager = managers.FriendManager{}
 
-// 	friends := friendManager.GetFriends(db, user)
-
-// 	// Paginate, Convert type and return Friends
-// 	paginatedData, paginatedFriends, err := PaginateQueryset(friends, c, 20)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedFriends := utils.ConvertStructData(paginatedFriends, []schemas.ProfileSchema{}).(*[]schemas.ProfileSchema)
-// 	response := schemas.ProfilesResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Friends fetched"}.Init(),
-// 		Data: schemas.ProfilesResponseDataSchema{
-// 			PaginatedResponseDataSchema: *paginatedData,
-// 			Items:                       *convertedFriends,
-// 		}.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+// @Summary Retrieve Friends
+// @Description This endpoint retrieves friends of a user
+// @Tags Profiles
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.ProfilesResponseSchema
+// @Router /profiles/friends [get]
+// @Security BearerAuth
+func (endpoint Endpoint) RetrieveFriends(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := c.Locals("user").(*models.User)
+	friends := friendManager.GetFriends(db, *user)
+	// Paginate and return Friends
+	paginatedData, paginatedFriends, err := PaginateQueryset(friends, c, 20)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	friends = paginatedFriends.([]models.User)
+	response := schemas.ProfilesResponseSchema{
+		ResponseSchema: SuccessResponse("Friends fetched"),
+		Data: schemas.ProfilesResponseDataSchema{
+			PaginatedResponseDataSchema: *paginatedData,
+			Items:                       friends,
+		}.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
 // // @Summary Retrieve Friend Requests
 // // @Description This endpoint retrieves friend requests of a user

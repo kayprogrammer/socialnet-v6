@@ -593,6 +593,25 @@ paths:
       summary: Retrieve cities based on query params
       tags:
       - Profiles
+  /profiles/friends:
+    get:
+      description: This endpoint retrieves friends of a user
+      parameters:
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ProfilesResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Retrieve Friends
+      tags:
+      - Profiles
   /profiles/profile:
     patch:
       description: This endpoint updates a user profile

@@ -28,14 +28,14 @@ type DeleteUserSchema struct {
 	Password 		string		`json:"password" validate:"required" example:"password"`
 }
 
-// type SendFriendRequestSchema struct {
-// 	Username		string		`json:"username" validate:"required" example:"john-doe"`
-// }
+type SendFriendRequestSchema struct {
+	Username		string		`json:"username" validate:"required" example:"john-doe"`
+}
 
-// type AcceptFriendRequestSchema struct {
-// 	Username		string		`json:"username" validate:"required" example:"john-doe"`
-// 	Accepted		bool		`json:"accepted" example:"true"`
-// }
+type AcceptFriendRequestSchema struct {
+	SendFriendRequestSchema
+	Accepted		bool		`json:"accepted" example:"true"`
+}
 
 // type NotificationSchema struct {
 // 	Edges        	*ent.NotificationEdges 	`json:"edges,omitempty" swaggerignore:"true"`
@@ -116,10 +116,10 @@ type DeleteUserSchema struct {
 // 	return message
 // }
 
-// type ReadNotificationSchema struct {
-// 	MarkAllAsRead		bool			`json:"mark_all_as_read" example:"false"`
-// 	ID					*uuid.UUID		`json:"id" validate:"required_if=MarkAllAsRead false,omitempty" example:"d10dde64-a242-4ed0-bd75-4c759644b3a6"`
-// }
+type ReadNotificationSchema struct {
+	MarkAllAsRead		bool			`json:"mark_all_as_read" example:"false"`
+	ID					*uuid.UUID		`json:"id" validate:"required_if=MarkAllAsRead false,omitempty" example:"d10dde64-a242-4ed0-bd75-4c759644b3a6"`
+}
 
 // RESPONSE SCHEMAS
 // CITIES
@@ -184,23 +184,23 @@ type ProfileUpdateResponseSchema struct {
 	Data				ProfileUpdateResponseDataSchema			`json:"data"`
 }
 
-// // NOTIFICATIONS
-// type NotificationsResponseDataSchema struct {
-// 	PaginatedResponseDataSchema
-// 	Items			[]NotificationSchema		`json:"notifications"`
-// }
+// NOTIFICATIONS
+type NotificationsResponseDataSchema struct {
+	PaginatedResponseDataSchema
+	Items			[]models.Notification		`json:"notifications"`
+}
 
-// func (data NotificationsResponseDataSchema) Init (currentUserID uuid.UUID) NotificationsResponseDataSchema {
-// 	// Set Initial Data
-// 	items := data.Items
-// 	for i := range items {
-// 		items[i] = items[i].Init(&currentUserID)
-// 	}
-// 	data.Items = items
-// 	return data
-// }
+func (data NotificationsResponseDataSchema) Init (currentUserID uuid.UUID) NotificationsResponseDataSchema {
+	// Set Initial Data
+	items := data.Items
+	for i := range items {
+		items[i] = items[i].Init(currentUserID)
+	}
+	data.Items = items
+	return data
+}
 
-// type NotificationsResponseSchema struct {
-// 	ResponseSchema
-// 	Data			NotificationsResponseDataSchema		`json:"data"`
-// }
+type NotificationsResponseSchema struct {
+	ResponseSchema
+	Data			NotificationsResponseDataSchema		`json:"data"`
+}

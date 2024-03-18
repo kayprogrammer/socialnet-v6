@@ -26,3 +26,7 @@ type Notification struct {
 	ReplyID   uuid.UUID                  `gorm:"null"`
 	Reply     Reply                      `gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE"`
 }
+
+func (n Notification) Init (userID uuid.UUID) Notification {
+	return n
+}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"gorm.io/gorm"
 )
 
@@ -58,10 +59,21 @@ func createCity(cfg config.Config, db *gorm.DB) models.City {
 	return city
 }
 
+func createFriend(db *gorm.DB, testadmin models.User, testclient models.User) models.Friend {
+	friend := models.Friend{
+		RequesterID: testadmin.ID,
+		RequesteeID: testclient.ID,
+		Status: choices.FACCEPTED,
+	}
+	db.FirstOrCreate(&friend, friend)
+	return friend
+}
+
 func CreateInitialData(cfg config.Config, db *gorm.DB) {
 	log.Println("Creating Initial Data....")
-	createSuperUser(cfg, db)
-	createClient(cfg, db)
+	testadmin := createSuperUser(cfg, db)
+	testclient := createClient(cfg, db)
 	createCity(cfg, db)
+	createFriend(db, testadmin, testclient)
 	log.Println("Initial Data Created....")
 }

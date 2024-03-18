@@ -413,6 +413,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/profiles/friends": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint retrieves friends of a user",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Retrieve Friends",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ProfilesResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/profiles/profile": {
             "post": {
                 "security": [
