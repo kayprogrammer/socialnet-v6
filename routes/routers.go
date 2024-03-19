@@ -40,10 +40,10 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	profilesRouter.Patch("/profile", endpoint.AuthMiddleware, endpoint.UpdateProfile)
 	profilesRouter.Post("/profile", endpoint.AuthMiddleware, endpoint.DeleteUser)
 	profilesRouter.Get("/friends", endpoint.AuthMiddleware, endpoint.RetrieveFriends)
-	// profilesRouter.Get("/friends/requests", endpoint.AuthMiddleware, endpoint.RetrieveFriendRequests)
-	// profilesRouter.Post("/friends/requests", endpoint.AuthMiddleware, endpoint.SendOrDeleteFriendRequest)
-	// profilesRouter.Put("/friends/requests", endpoint.AuthMiddleware, endpoint.AcceptOrRejectFriendRequest)
-	// profilesRouter.Get("/notifications", endpoint.AuthMiddleware, endpoint.RetrieveUserNotifications)
-	// profilesRouter.Post("/notifications", endpoint.AuthMiddleware, endpoint.ReadNotification)
+	profilesRouter.Get("/friends/requests", endpoint.AuthMiddleware, endpoint.RetrieveFriendRequests)
+	profilesRouter.Post("/friends/requests", endpoint.AuthMiddleware, endpoint.SendOrDeleteFriendRequest)
+	profilesRouter.Put("/friends/requests", endpoint.AuthMiddleware, endpoint.AcceptOrRejectFriendRequest)
+	profilesRouter.Get("/notifications", endpoint.AuthMiddleware, endpoint.RetrieveUserNotifications)
+	profilesRouter.Post("/notifications", endpoint.AuthMiddleware, endpoint.ReadNotification)
 
 }

@@ -1,11 +1,13 @@
 package routes
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm/clause"
@@ -48,7 +50,7 @@ func (endpoint Endpoint) RetrieveCities(c *fiber.Ctx) error {
 // @Security BearerAuth
 func (endpoint Endpoint) RetrieveUsers(c *fiber.Ctx) error {
 	db := endpoint.DB
-	user := c.Locals("user").(*models.User)
+	user := RequestUser(c)
 
 	users := []models.User{}
 	query := db.Preload(clause.Associations)
@@ -106,7 +108,7 @@ func (endpoint Endpoint) RetrieveUserProfile(c *fiber.Ctx) error {
 // @Security BearerAuth
 func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
 	db := endpoint.DB
-	user := c.Locals("user").(*models.User)
+	user := RequestUser(c)
 
 	data := schemas.ProfileUpdateSchema{}
 
@@ -160,7 +162,7 @@ func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
 // @Security BearerAuth
 func (endpoint Endpoint) DeleteUser(c *fiber.Ctx) error {
 	db := endpoint.DB
-	user := c.Locals("user").(*models.User)
+	user := RequestUser(c)
 
 	data := schemas.DeleteUserSchema{}
 
@@ -193,7 +195,7 @@ var friendManager = managers.FriendManager{}
 // @Security BearerAuth
 func (endpoint Endpoint) RetrieveFriends(c *fiber.Ctx) error {
 	db := endpoint.DB
-	user := c.Locals("user").(*models.User)
+	user := RequestUser(c)
 	friends := friendManager.GetFriends(db, *user)
 	// Paginate and return Friends
 	paginatedData, paginatedFriends, err := PaginateQueryset(friends, c, 20)
@@ -211,195 +213,185 @@ func (endpoint Endpoint) RetrieveFriends(c *fiber.Ctx) error {
 	return c.Status(200).JSON(response)
 }
 
-// // @Summary Retrieve Friend Requests
-// // @Description This endpoint retrieves friend requests of a user
-// // @Tags Profiles
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.ProfilesResponseSchema
-// // @Router /profiles/friends/requests [get]
-// // @Security BearerAuth
-// func (endpoint Endpoint) RetrieveFriendRequests(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// @Summary Retrieve Friend Requests
+// @Description This endpoint retrieves friend requests of a user
+// @Tags Profiles
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.ProfilesResponseSchema
+// @Router /profiles/friends/requests [get]
+// @Security BearerAuth
+func (endpoint Endpoint) RetrieveFriendRequests(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
 
-// 	friendsRequests := friendManager.GetFriendRequests(db, user)
+	friendsRequests := friendManager.GetFriendRequests(db, user)
 
-// 	// Paginate, Convert type and return Friends Requests
-// 	paginatedData, paginatedFriendRequests, err := PaginateQueryset(friendsRequests, c, 20)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedFriendRequests := utils.ConvertStructData(paginatedFriendRequests, []schemas.ProfileSchema{}).(*[]schemas.ProfileSchema)
-// 	response := schemas.ProfilesResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Friend Requests fetched"}.Init(),
-// 		Data: schemas.ProfilesResponseDataSchema{
-// 			PaginatedResponseDataSchema: *paginatedData,
-// 			Items:                       *convertedFriendRequests,
-// 		}.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Paginate, Convert type and return Friends Requests
+	paginatedData, paginatedFriendRequests, err := PaginateQueryset(friendsRequests, c, 20)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	friendsRequests = paginatedFriendRequests.([]models.User)
+	response := schemas.ProfilesResponseSchema{
+		ResponseSchema: SuccessResponse("Friend Requests fetched"),
+		Data: schemas.ProfilesResponseDataSchema{
+			PaginatedResponseDataSchema: *paginatedData,
+			Items:                       friendsRequests,
+		}.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Send Or Delete Friend Request
-// // @Description This endpoint sends or delete friend requests
-// // @Tags Profiles
-// // @Param friend_request body schemas.SendFriendRequestSchema true "Friend Request object"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /profiles/friends/requests [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) SendOrDeleteFriendRequest(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// @Summary Send Or Delete Friend Request
+// @Description This endpoint sends or delete friend requests
+// @Tags Profiles
+// @Param friend_request body schemas.SendFriendRequestSchema true "Friend Request object"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /profiles/friends/requests [post]
+// @Security BearerAuth
+func (endpoint Endpoint) SendOrDeleteFriendRequest(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
 
-// 	friendRequestData := schemas.SendFriendRequestSchema{}
+	data := schemas.SendFriendRequestSchema{}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &friendRequestData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(friendRequestData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	requestee, friend, errData := friendManager.GetRequesteeAndFriendObj(db, user, friendRequestData.Username)
-// 	if errData != nil {
-// 		return c.Status(404).JSON(errData)
-// 	}
-// 	message := "Friend Request sent"
-// 	statusCode := 201
+	requestee, friend, errData := friendManager.GetRequesteeAndFriendObj(db, user, data.Username)
+	if errData != nil {
+		return c.Status(404).JSON(errData)
+	}
+	message := "Friend Request sent"
+	statusCode := 201
+	if friend.ID != nil {
+		statusCode = 200
+		message = "Friend Request removed"
+		if friend.Status == "ACCEPTED" {
+			message = "This user is already your friend"
+		} else if user.ID.String() != friend.RequesterID.String() {
+			return c.Status(403).JSON(utils.RequestErr(utils.ERR_NOT_ALLOWED, "The user already sent you a friend request!"))
+		} else {
+			// Delete friend successfully
+			db.Delete(&friend)
+		}
 
-// 	if friend != nil {
-// 		statusCode = 200
-// 		message = "Friend Request removed"
-// 		if friend.Status == "ACCEPTED" {
-// 			message = "This user is already your friend"
-// 		} else if user.ID != friend.RequesterID {
-// 			return c.Status(403).JSON(utils.RequestErr(utils.ERR_NOT_ALLOWED, "The user already sent you a friend request!"))
-// 		} else {
-// 			// Delete friend successfully
-// 			db.Friend.DeleteOne(friend).Exec(managers.Ctx)
-// 		}
+	} else {
+		// Create Friend Object
+		db.Create(&models.Friend{RequesterID: user.ID, RequesteeID: requestee.ID, Status: choices.FPENDING})
+	}
 
-// 	} else {
-// 		// Create Friend Object
-// 		friendManager.Create(db, user, requestee, "PENDING")
-// 	}
+	response := SuccessResponse(message)
+	return c.Status(statusCode).JSON(response)
+}
 
-// 	response := schemas.ResponseSchema{Message: message}.Init()
-// 	return c.Status(statusCode).JSON(response)
-// }
+// @Summary Accept Or Reject a Friend Request
+// @Description This endpoint accepts or reject a friend request
+// @Tags Profiles
+// @Param friend_request body schemas.AcceptFriendRequestSchema true "Friend Request object"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /profiles/friends/requests [put]
+// @Security BearerAuth
+func (endpoint Endpoint) AcceptOrRejectFriendRequest(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
 
-// // @Summary Accept Or Reject a Friend Request
-// // @Description This endpoint accepts or reject a friend request
-// // @Tags Profiles
-// // @Param friend_request body schemas.AcceptFriendRequestSchema true "Friend Request object"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /profiles/friends/requests [put]
-// // @Security BearerAuth
-// func (endpoint Endpoint) AcceptOrRejectFriendRequest(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+	data := schemas.AcceptFriendRequestSchema{}
 
-// 	friendRequestData := schemas.AcceptFriendRequestSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &friendRequestData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(friendRequestData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	_, friend, errData := friendManager.GetRequesteeAndFriendObj(db, user, data.Username, choices.FPENDING)
+	if errData != nil {
+		return c.Status(404).JSON(errData)
+	}
+	if friend.ID == nil {
+		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "No friend request exist between you and that user"))
+	}
+	if friend.RequesterID.String() == user.ID.String() {
+		return c.Status(403).JSON(utils.RequestErr(utils.ERR_NOT_ALLOWED, "You cannot accept or reject a friend request you sent"))
+	}
+	// Update or delete friend request based on status
+	message := "Accepted"
+	if data.Accepted {
+		// Update Friend Request
+		friend.Status = choices.FACCEPTED
+		db.Save(&friend)
+	} else {
+		// Delete Friend Request
+		message = "Rejected"
+		db.Delete(&friend)
+	}
+	return c.Status(200).JSON(SuccessResponse(fmt.Sprintf("Friend Request %s", message)))
+}
 
-// 	_, friend, errData := friendManager.GetRequesteeAndFriendObj(db, user, friendRequestData.Username, "PENDING")
-// 	if errData != nil {
-// 		return c.Status(404).JSON(errData)
-// 	}
-// 	if friend == nil {
-// 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "No friend request exist between you and that user"))
-// 	}
-// 	if friend.RequesterID == user.ID {
-// 		return c.Status(403).JSON(utils.RequestErr(utils.ERR_NOT_ALLOWED, "You cannot accept or reject a friend request you sent"))
-// 	}
-// 	// Update or delete friend request based on status
-// 	message := "Accepted"
-// 	if friendRequestData.Accepted {
-// 		// Update Friend Request
-// 		friend.Update().SetStatus("ACCEPTED").Save(managers.Ctx)
-// 	} else {
-// 		// Delete Friend Request
-// 		message = "Rejected"
-// 		db.Friend.DeleteOne(friend).Exec(managers.Ctx)
-// 	}
-// 	response := schemas.ResponseSchema{Message: fmt.Sprintf("Friend Request %s", message)}.Init()
-// 	return c.Status(200).JSON(response)
-// }
+var notificationManager = managers.NotificationManager{}
+// @Summary Retrieve User Notifications
+// @Description This endpoint retrieves a paginated list of auth user's notifications. Use post, comment, reply slug to navigate to the post, comment or reply.
+// @Tags Profiles
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.NotificationsResponseSchema
+// @Router /profiles/notifications [get]
+// @Security BearerAuth
+func (endpoint Endpoint) RetrieveUserNotifications(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
 
-// var notificationManager = managers.NotificationManager{}
-// // @Summary Retrieve User Notifications
-// // @Description This endpoint retrieves a paginated list of auth user's notifications. Use post, comment, reply slug to navigate to the post, comment or reply.
-// // @Tags Profiles
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.NotificationsResponseSchema
-// // @Router /profiles/notifications [get]
-// // @Security BearerAuth
-// func (endpoint Endpoint) RetrieveUserNotifications(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+	notifications := notificationManager.GetQueryset(db, user.ID)
 
-// 	notifications := notificationManager.GetQueryset(db, user.ID)
+	// Paginate, Convert type and return notifications
+	paginatedData, paginatedNotifications, err := PaginateQueryset(notifications, c)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	notifications = paginatedNotifications.([]models.Notification)
+	response := schemas.NotificationsResponseSchema{
+		ResponseSchema: SuccessResponse("Notifications fetched"),
+		Data: schemas.NotificationsResponseDataSchema{
+			PaginatedResponseDataSchema: *paginatedData,
+			Items:                       notifications,
+		}.Init(user.ID),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// 	// Paginate, Convert type and return notifications
-// 	paginatedData, paginatedNotifications, err := PaginateQueryset(notifications, c)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedNotifications := utils.ConvertStructData(paginatedNotifications, []schemas.NotificationSchema{}).(*[]schemas.NotificationSchema)
-// 	response := schemas.NotificationsResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Notifications fetched"}.Init(),
-// 		Data: schemas.NotificationsResponseDataSchema{
-// 			PaginatedResponseDataSchema: *paginatedData,
-// 			Items:                       *convertedNotifications,
-// 		}.Init(user.ID),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+// @Summary Read Notifications
+// @Description This endpoint reads a notification
+// @Tags Profiles
+// @Param read_data body schemas.ReadNotificationSchema true "Read Notification Data"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /profiles/notifications [post]
+// @Security BearerAuth
+func (endpoint Endpoint) ReadNotification(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
 
-// // @Summary Read Notifications
-// // @Description This endpoint reads a notification
-// // @Tags Profiles
-// // @Param read_data body schemas.ReadNotificationSchema true "Read Notification Data"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /profiles/notifications [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) ReadNotification(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+	data := schemas.ReadNotificationSchema{}
 
-// 	readNotificationData := schemas.ReadNotificationSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &readNotificationData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(readNotificationData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	notificationID := data.ID
+	markAllAsRead := data.MarkAllAsRead
 
-// 	notificationID := readNotificationData.ID
-// 	markAllAsRead := readNotificationData.MarkAllAsRead
-
-// 	respMessage := "Notifications read"
-// 	if markAllAsRead {
-//         // Mark all notifications as read
-// 		notificationManager.MarkAsRead(db, user.ID)
-// 	} else if notificationID != nil {
-//         // Mark single notification as read
-// 		err := notificationManager.ReadOne(db, user.ID, *notificationID)
-// 		if err != nil {
-// 			return c.Status(404).JSON(err)
-// 		}
-// 		respMessage = "Notification read"
-// 	}
-// 	response := schemas.ResponseSchema{Message: respMessage}.Init()
-// 	return c.Status(200).JSON(response)
-// }
+	respMessage := "Notifications read"
+	if markAllAsRead {
+        // Mark all notifications as read
+		notificationManager.MarkAsRead(db, user)
+	} else if notificationID != nil {
+        // Mark single notification as read
+		err := notificationManager.ReadOne(db, user, *notificationID)
+		if err != nil {
+			return c.Status(404).JSON(err)
+		}
+		respMessage = "Notification read"
+	}
+	response := SuccessResponse(respMessage)
+	return c.Status(200).JSON(response)
+}

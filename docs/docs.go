@@ -444,6 +444,161 @@ const docTemplate = `{
                 }
             }
         },
+        "/profiles/friends/requests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint retrieves friend requests of a user",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Retrieve Friend Requests",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ProfilesResponseSchema"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint accepts or reject a friend request",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Accept Or Reject a Friend Request",
+                "parameters": [
+                    {
+                        "description": "Friend Request object",
+                        "name": "friend_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.AcceptFriendRequestSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint sends or delete friend requests",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Send Or Delete Friend Request",
+                "parameters": [
+                    {
+                        "description": "Friend Request object",
+                        "name": "friend_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.SendFriendRequestSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/profiles/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint retrieves a paginated list of auth user's notifications. Use post, comment, reply slug to navigate to the post, comment or reply.",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Retrieve User Notifications",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.NotificationsResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint reads a notification",
+                "tags": [
+                    "Profiles"
+                ],
+                "summary": "Read Notifications",
+                "parameters": [
+                    {
+                        "description": "Read Notification Data",
+                        "name": "read_data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ReadNotificationSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/profiles/profile": {
             "post": {
                 "security": [
@@ -536,6 +691,21 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "choices.NotificationChoice": {
+            "type": "string",
+            "enum": [
+                "REACTION",
+                "COMMENT",
+                "REPLY",
+                "ADMIN"
+            ],
+            "x-enum-varnames": [
+                "NREACTION",
+                "NCOMMENT",
+                "NREPLY",
+                "NADMIN"
+            ]
+        },
         "models.City": {
             "type": "object",
             "properties": {
@@ -557,6 +727,180 @@ const docTemplate = `{
                 "region": {
                     "type": "string",
                     "example": "Lagos"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Comment": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "authorID": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "post": {
+                    "$ref": "#/definitions/models.Post"
+                },
+                "postID": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.File": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "resource_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Notification": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "$ref": "#/definitions/models.Comment"
+                },
+                "commentID": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "ntype": {
+                    "$ref": "#/definitions/choices.NotificationChoice"
+                },
+                "post": {
+                    "$ref": "#/definitions/models.Post"
+                },
+                "postID": {
+                    "type": "string"
+                },
+                "readBy": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "receivers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "reply": {
+                    "$ref": "#/definitions/models.Reply"
+                },
+                "replyID": {
+                    "type": "string"
+                },
+                "sender": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "senderID": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Post": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "authorID": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "image": {
+                    "$ref": "#/definitions/models.File"
+                },
+                "imageID": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Reply": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "authorID": {
+                    "type": "string"
+                },
+                "comment": {
+                    "$ref": "#/definitions/models.Comment"
+                },
+                "commentID": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -664,6 +1008,22 @@ const docTemplate = `{
                 }
             }
         },
+        "schemas.AcceptFriendRequestSchema": {
+            "type": "object",
+            "required": [
+                "username"
+            ],
+            "properties": {
+                "accepted": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john-doe"
+                }
+            }
+        },
         "schemas.CitiesResponseSchema": {
             "type": "object",
             "properties": {
@@ -722,6 +1082,45 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "password"
+                }
+            }
+        },
+        "schemas.NotificationsResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "notifications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Notification"
+                    }
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "schemas.NotificationsResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.NotificationsResponseDataSchema"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },
@@ -814,6 +1213,19 @@ const docTemplate = `{
                 }
             }
         },
+        "schemas.ReadNotificationSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "mark_all_as_read": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
         "schemas.RefreshTokenSchema": {
             "type": "object",
             "required": [
@@ -887,6 +1299,18 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "success"
+                }
+            }
+        },
+        "schemas.SendFriendRequestSchema": {
+            "type": "object",
+            "required": [
+                "username"
+            ],
+            "properties": {
+                "username": {
+                    "type": "string",
+                    "example": "john-doe"
                 }
             }
         },

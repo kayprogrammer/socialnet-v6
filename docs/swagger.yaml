@@ -2,6 +2,18 @@ basePath: /api/v6
 consumes:
 - application/json
 definitions:
+  choices.NotificationChoice:
+    enum:
+    - REACTION
+    - COMMENT
+    - REPLY
+    - ADMIN
+    type: string
+    x-enum-varnames:
+    - NREACTION
+    - NCOMMENT
+    - NREPLY
+    - NADMIN
   models.City:
     properties:
       country:
@@ -17,6 +29,122 @@ definitions:
         type: string
       region:
         example: Lagos
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Comment:
+    properties:
+      author:
+        $ref: '#/definitions/models.User'
+      authorID:
+        type: string
+      created_at:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      post:
+        $ref: '#/definitions/models.Post'
+      postID:
+        type: string
+      slug:
+        type: string
+      text:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.File:
+    properties:
+      created_at:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      resource_type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Notification:
+    properties:
+      comment:
+        $ref: '#/definitions/models.Comment'
+      commentID:
+        type: string
+      created_at:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      ntype:
+        $ref: '#/definitions/choices.NotificationChoice'
+      post:
+        $ref: '#/definitions/models.Post'
+      postID:
+        type: string
+      readBy:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      receivers:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      reply:
+        $ref: '#/definitions/models.Reply'
+      replyID:
+        type: string
+      sender:
+        $ref: '#/definitions/models.User'
+      senderID:
+        type: string
+      text:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Post:
+    properties:
+      author:
+        $ref: '#/definitions/models.User'
+      authorID:
+        type: string
+      created_at:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      image:
+        $ref: '#/definitions/models.File'
+      imageID:
+        type: string
+      slug:
+        type: string
+      text:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Reply:
+    properties:
+      author:
+        $ref: '#/definitions/models.User'
+      authorID:
+        type: string
+      comment:
+        $ref: '#/definitions/models.Comment'
+      commentID:
+        type: string
+      created_at:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      slug:
+        type: string
+      text:
         type: string
       updated_at:
         type: string
@@ -93,6 +221,17 @@ definitions:
         example: pong
         type: string
     type: object
+  schemas.AcceptFriendRequestSchema:
+    properties:
+      accepted:
+        example: true
+        type: boolean
+      username:
+        example: john-doe
+        type: string
+    required:
+    - username
+    type: object
   schemas.CitiesResponseSchema:
     properties:
       data:
@@ -134,6 +273,33 @@ definitions:
     required:
     - email
     - password
+    type: object
+  schemas.NotificationsResponseDataSchema:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      last_page:
+        example: 100
+        type: integer
+      notifications:
+        items:
+          $ref: '#/definitions/models.Notification'
+        type: array
+      per_page:
+        example: 100
+        type: integer
+    type: object
+  schemas.NotificationsResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.NotificationsResponseDataSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
     type: object
   schemas.ProfileResponseSchema:
     properties:
@@ -199,6 +365,15 @@ definitions:
         example: success
         type: string
     type: object
+  schemas.ReadNotificationSchema:
+    properties:
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      mark_all_as_read:
+        example: false
+        type: boolean
+    type: object
   schemas.RefreshTokenSchema:
     properties:
       refresh:
@@ -253,6 +428,14 @@ definitions:
       status:
         example: success
         type: string
+    type: object
+  schemas.SendFriendRequestSchema:
+    properties:
+      username:
+        example: john-doe
+        type: string
+    required:
+    - username
     type: object
   schemas.SetNewPasswordSchema:
     properties:
@@ -610,6 +793,102 @@ paths:
       security:
       - BearerAuth: []
       summary: Retrieve Friends
+      tags:
+      - Profiles
+  /profiles/friends/requests:
+    get:
+      description: This endpoint retrieves friend requests of a user
+      parameters:
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ProfilesResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Retrieve Friend Requests
+      tags:
+      - Profiles
+    post:
+      description: This endpoint sends or delete friend requests
+      parameters:
+      - description: Friend Request object
+        in: body
+        name: friend_request
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.SendFriendRequestSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Send Or Delete Friend Request
+      tags:
+      - Profiles
+    put:
+      description: This endpoint accepts or reject a friend request
+      parameters:
+      - description: Friend Request object
+        in: body
+        name: friend_request
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.AcceptFriendRequestSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Accept Or Reject a Friend Request
+      tags:
+      - Profiles
+  /profiles/notifications:
+    get:
+      description: This endpoint retrieves a paginated list of auth user's notifications.
+        Use post, comment, reply slug to navigate to the post, comment or reply.
+      parameters:
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.NotificationsResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Retrieve User Notifications
+      tags:
+      - Profiles
+    post:
+      description: This endpoint reads a notification
+      parameters:
+      - description: Read Notification Data
+        in: body
+        name: read_data
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.ReadNotificationSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Read Notifications
       tags:
       - Profiles
   /profiles/profile:

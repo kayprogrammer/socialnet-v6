@@ -81,7 +81,7 @@ func DecodeAccessToken(token string, db *gorm.DB) (*models.User, *string) {
 	}
 	user := models.User{BaseModel: models.BaseModel{ID: claims.UserId}, Access: &token}
 	// Fetch Jwt model object
-	result := db.Take(&user, user)
+	result := db.Preload("CityObj", "AvatarObj").Take(&user, user)
 	if result.Error != nil {
 		return nil, &tokenErr
 	}

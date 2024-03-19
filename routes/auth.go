@@ -302,7 +302,7 @@ func (ep Endpoint) Refresh(c *fiber.Ctx) error {
 // @Security BearerAuth
 func (ep Endpoint) Logout(c *fiber.Ctx) error {
 	db := ep.DB
-	user := c.Locals("user").(*models.User)
+	user := RequestUser(c)
 	user.Access = nil
 	user.Refresh = nil
 	db.Save(user)
