@@ -32,7 +32,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	authRouter.Post("/refresh", endpoint.Refresh)
 	authRouter.Get("/logout", endpoint.AuthMiddleware, endpoint.Logout)
 
-	// // Profile Routes ()
+	// Profile Routes (12)
 	profilesRouter := api.Group("/profiles")
 	profilesRouter.Get("/cities", endpoint.RetrieveCities)
 	profilesRouter.Get("", endpoint.GuestMiddleware, endpoint.RetrieveUsers)

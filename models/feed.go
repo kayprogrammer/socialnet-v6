@@ -10,10 +10,11 @@ import (
 
 type FeedAbstract struct {
 	BaseModel
-	AuthorID uuid.UUID `gorm:"not null"`
-	Author   User      `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE"`
-	Text     string    `json:"text"`
-	Slug     string    `gorm:"unique" json:"slug"`
+	AuthorID  uuid.UUID  `gorm:"not null"`
+	Author    User       `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE"`
+	Text      string     `json:"text"`
+	Slug      string     `gorm:"unique;not null;" json:"slug"`
+	Reactions []Reaction `json:"-"`
 }
 
 func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
@@ -24,14 +25,16 @@ func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
 
 type Post struct {
 	FeedAbstract
-	ImageID *uuid.UUID `gorm:"null"`
-	Image   *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL"`
+	ImageID  *uuid.UUID `gorm:"null"`
+	Image    *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL"`
+	Comments []Comment  `json:"-"`
 }
 
 type Comment struct {
 	FeedAbstract
-	PostID uuid.UUID `gorm:"not null"`
-	Post   Post      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	PostID  uuid.UUID `gorm:"not null"`
+	Post    Post      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	Replies []Reply   `json:"-"`
 }
 
 type Reply struct {
