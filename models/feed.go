@@ -11,7 +11,7 @@ import (
 type FeedAbstract struct {
 	BaseModel
 	AuthorID  uuid.UUID  `gorm:"not null"`
-	Author    User       `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE"`
+	AuthorObj User       `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE"`
 	Text      string     `json:"text"`
 	Slug      string     `gorm:"unique;not null;" json:"slug"`
 	Reactions []Reaction `json:"-"`
@@ -19,34 +19,35 @@ type FeedAbstract struct {
 
 func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
 	// Create slug
-	obj.Slug = fmt.Sprintf("%s-%s-%s", obj.Author.FirstName, obj.Author.LastName, obj.ID)
+	obj.Slug = fmt.Sprintf("%s-%s-%s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, obj.ID)
 	return
 }
 
 type Post struct {
 	FeedAbstract
 	ImageID  *uuid.UUID `gorm:"null"`
-	Image    *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL"`
+	ImageObj *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
+	Image    *string    `gorm:"-" json:"image"`
 	Comments []Comment  `json:"-"`
 }
 
 type Comment struct {
 	FeedAbstract
 	PostID  uuid.UUID `gorm:"not null"`
-	Post    Post      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	PostObj Post      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
 	Replies []Reply   `json:"-"`
 }
 
 type Reply struct {
 	FeedAbstract
-	CommentID uuid.UUID `gorm:"not null"`
-	Comment   Comment   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+	CommentID  uuid.UUID `gorm:"not null"`
+	CommentObj Comment   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
 }
 
 type Reaction struct {
 	BaseModel
 	UserID    uuid.UUID              `gorm:"not null;index:,unique,composite:user_id_post_id;index:,unique,composite:user_id_comment_id;index:,unique,composite:user_id_reply_id"`
-	User      User                   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	UserObj   User                   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
 	Rtype     choices.ReactionChoice `gorm:"varchar(50)"`
 	PostID    uuid.UUID              `gorm:"null;index:,unique,composite:user_id_post_id"`
 	Post      Post                   `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`

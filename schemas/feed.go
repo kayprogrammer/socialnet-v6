@@ -7,7 +7,6 @@ import (
 )
 
 type PostSchema struct {
-	Edges        		*ent.PostEdges 		`json:"edges,omitempty" swaggerignore:"true"`
 	Author 				UserDataSchema 		`json:"author"`
 	Text 				string 				`json:"text" example:"God Is Good"`
 	Slug 				string				`json:"slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
