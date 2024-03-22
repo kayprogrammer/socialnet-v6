@@ -27,3 +27,16 @@ func (f File) UpdateOrCreate (db *gorm.DB, id *uuid.UUID) File {
 	}
 	return f
 }
+
+type UserDataSchema struct {
+	Name     string  `json:"name" example:"John Doe"`
+	Username string  `json:"username" example:"john-doe"`
+	Avatar   *string `json:"avatar" example:"https://img.url"`
+}
+
+func (user UserDataSchema) Init(userObj User) UserDataSchema {
+	user.Name = userObj.FullName()
+	user.Username = userObj.Username
+	user.Avatar = userObj.GetAvatarUrl()
+	return user
+}

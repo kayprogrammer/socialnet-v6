@@ -2,13 +2,12 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	// "github.com/pborman/uuid"
+	"github.com/kayprogrammer/socialnet-v6/managers"
+	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/schemas"
 )
 
-var (
-	postManager = managers.PostManager{}
-	validator = utils.Validator()
-)
+var postManager = managers.PostManager{}
 
 // @Summary Retrieve Latest Posts
 // @Description This endpoint retrieves paginated responses of latest posts
@@ -25,47 +24,43 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).JSON(err)
 	}
+	posts = paginatedPosts.([]models.Post)
 	response := schemas.PostsResponseSchema{
-		ResponseSchema: schemas.ResponseSchema{Message: "Posts fetched"}.Init(),
+		ResponseSchema: SuccessResponse("Posts fetched"),
 		Data: schemas.PostsResponseDataSchema{
 			PaginatedResponseDataSchema: *paginatedData,
-			Items:                       *convertedPosts,
+			Items:                       posts,
 		}.Init(),
 	}
 	return c.Status(200).JSON(response)
 }
 
-// // @Summary Create Post
-// // @Description This endpoint creates a new post
-// // @Tags Feed
-// // @Param post body schemas.PostInputSchema true "Post object"
-// // @Success 201 {object} schemas.PostInputResponseSchema
-// // @Router /feed/posts [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) CreatePost(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// @Summary Create Post
+// @Description This endpoint creates a new post
+// @Tags Feed
+// @Param post body schemas.PostInputSchema true "Post object"
+// @Success 201 {object} schemas.PostInputResponseSchema
+// @Router /feed/posts [post]
+// @Security BearerAuth
+func (endpoint Endpoint) CreatePost(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
+	data := schemas.PostInputSchema{}
 
-// 	postData := schemas.PostInputSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &postData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(postData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	post := postManager.Create(db, *user, data)
 
-// 	post := postManager.Create(db, user, postData)
-
-// 	// Convert type and return Post
-// 	convertedPost := utils.ConvertStructData(post, schemas.PostInputResponseDataSchema{}).(*schemas.PostInputResponseDataSchema)
-// 	response := schemas.PostInputResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Post created"}.Init(),
-// 		Data:           convertedPost.Init(postData.FileType),
-// 	}
-// 	return c.Status(201).JSON(response)
-// }
+	// Convert type and return Post
+	response := schemas.PostInputResponseSchema{
+		ResponseSchema: SuccessResponse("Post created"),
+		Data:           post.InitC(data.FileType),
+	}
+	return c.Status(201).JSON(response)
+}
 
 // // @Summary Retrieve Single Post
 // // @Description This endpoint retrieves a single post
@@ -100,7 +95,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // // @Security BearerAuth
 // func (endpoint Endpoint) UpdatePost(c *fiber.Ctx) error {
 // 	db := endpoint.DB
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 // 	slug := c.Params("slug")
 
 // 	postData := schemas.PostInputSchema{}
@@ -144,7 +139,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) DeletePost(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Retrieve & Validate Post Existence
 // 	post, errCode, errData := postManager.GetBySlug(db, slug)
@@ -220,7 +215,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	focus := c.Params("focus")
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Validate Focus
 // 	err := ValidateReactionFocus(focus)
@@ -283,7 +278,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // 	if err != nil {
 // 		return c.Status(400).JSON(err)
 // 	}
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Retrieve & Validate Reaction Existence & Ownership
 // 	reaction, errCode, errData := reactionManager.GetByID(db, *reactionID)
@@ -361,7 +356,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) CreateComment(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Get Post
 // 	post, errCode, errData := postManager.GetBySlug(db, slug)
@@ -445,7 +440,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) CreateReply(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Get Comment
 // 	comment, errCode, errData := commentManager.GetBySlug(db, slug)
@@ -491,7 +486,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) UpdateComment(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Get Comment
 // 	comment, errCode, errData := commentManager.GetBySlug(db, slug, true)
@@ -533,7 +528,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) DeleteComment(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Retrieve & Validate Comment Existence & Ownership
 // 	comment, errCode, errData := commentManager.GetBySlug(db, slug)
@@ -595,7 +590,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) UpdateReply(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Get Reply
 // 	reply, errCode, errData := replyManager.GetBySlug(db, slug, true)
@@ -637,7 +632,7 @@ func (endpoint Endpoint) RetrievePosts(c *fiber.Ctx) error {
 // func (endpoint Endpoint) DeleteReply(c *fiber.Ctx) error {
 // 	db := endpoint.DB
 // 	slug := c.Params("slug")
-// 	user := c.Locals("user").(*ent.User)
+// 	user := RequestUser(c)
 
 // 	// Retrieve & Validate Reply Existence & Ownership
 // 	reply, errCode, errData := replyManager.GetBySlug(db, slug)

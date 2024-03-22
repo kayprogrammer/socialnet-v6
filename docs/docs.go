@@ -323,6 +323,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed/posts": {
+            "get": {
+                "description": "This endpoint retrieves paginated responses of latest posts",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Retrieve Latest Posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.PostsResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint creates a new post",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Create Post",
+                "parameters": [
+                    {
+                        "description": "Post object",
+                        "name": "post",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.PostInputSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.PostInputResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/general/site-detail": {
             "get": {
                 "description": "This endpoint retrieves few details of the site/application.",
@@ -737,10 +794,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "author": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "authorID": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.UserDataSchema"
                 },
                 "created_at": {
                     "type": "string"
@@ -749,34 +803,16 @@ const docTemplate = `{
                     "type": "string",
                     "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
                 },
-                "post": {
-                    "$ref": "#/definitions/models.Post"
-                },
                 "postID": {
                     "type": "string"
+                },
+                "postObj": {
+                    "$ref": "#/definitions/models.Post"
                 },
                 "slug": {
                     "type": "string"
                 },
                 "text": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.File": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
-                },
-                "resource_type": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -845,23 +881,26 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "author": {
-                    "$ref": "#/definitions/models.User"
+                    "$ref": "#/definitions/models.UserDataSchema"
                 },
-                "authorID": {
-                    "type": "string"
+                "comments_count": {
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
+                },
+                "file_upload_data": {
+                    "$ref": "#/definitions/utils.SignatureFormat"
                 },
                 "id": {
                     "type": "string",
                     "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
                 },
                 "image": {
-                    "$ref": "#/definitions/models.File"
-                },
-                "imageID": {
                     "type": "string"
+                },
+                "reactions_count": {
+                    "type": "integer"
                 },
                 "slug": {
                     "type": "string"
@@ -878,16 +917,13 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "author": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "authorID": {
-                    "type": "string"
-                },
-                "comment": {
-                    "$ref": "#/definitions/models.Comment"
+                    "$ref": "#/definitions/models.UserDataSchema"
                 },
                 "commentID": {
                     "type": "string"
+                },
+                "commentObj": {
+                    "$ref": "#/definitions/models.Comment"
                 },
                 "created_at": {
                     "type": "string"
@@ -992,6 +1028,23 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john-doe"
+                }
+            }
+        },
+        "models.UserDataSchema": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string",
+                    "example": "https://img.url"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "John Doe"
                 },
                 "username": {
                     "type": "string",
@@ -1113,6 +1166,77 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/schemas.NotificationsResponseDataSchema"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.PostInputResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Post"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.PostInputSchema": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "file_type": {
+                    "type": "string",
+                    "example": "image/jpeg"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "God is good"
+                }
+            }
+        },
+        "schemas.PostsResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Post"
+                    }
+                }
+            }
+        },
+        "schemas.PostsResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.PostsResponseDataSchema"
                 },
                 "message": {
                     "type": "string",
@@ -1390,6 +1514,23 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "utils.SignatureFormat": {
+            "type": "object",
+            "properties": {
+                "public_id": {
+                    "type": "string",
+                    "example": "images/f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                },
+                "signature": {
+                    "type": "string",
+                    "example": "e1ba4683fbbf90b75ca22e9f8e545b18c6b24eae"
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "example": 1678828200
                 }
             }
         }

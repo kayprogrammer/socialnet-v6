@@ -86,7 +86,7 @@ func (endpoint Endpoint) RetrieveUserProfile(c *fiber.Ctx) error {
 	username := c.Params("username")
 
 	user := models.User{}
-	db.Preload(clause.Associations).Take(&user, models.User{Username: username})
+	db.Preload("CityObj").Preload("AvatarObj").Take(&user, models.User{Username: username})
 	if user.ID == nil {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "No user with that username"))
 	}
@@ -130,16 +130,15 @@ func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
 		}
 		user.CityObj = &city
 	}
-
 	// Create OR Update File
 	fileType := data.FileType
 	if fileType != nil {
 		file := models.File{ResourceType: *fileType}.UpdateOrCreate(db, user.AvatarId)
 		user.AvatarObj = &file
 	}
-
 	// Set values & save
 	user = data.SetValues(user)
+	fmt.Println("Haaalalala")
 	db.Save(&user)
 
 	// Return repsonse
@@ -330,6 +329,7 @@ func (endpoint Endpoint) AcceptOrRejectFriendRequest(c *fiber.Ctx) error {
 }
 
 var notificationManager = managers.NotificationManager{}
+
 // @Summary Retrieve User Notifications
 // @Description This endpoint retrieves a paginated list of auth user's notifications. Use post, comment, reply slug to navigate to the post, comment or reply.
 // @Tags Profiles
@@ -382,10 +382,10 @@ func (endpoint Endpoint) ReadNotification(c *fiber.Ctx) error {
 
 	respMessage := "Notifications read"
 	if markAllAsRead {
-        // Mark all notifications as read
+		// Mark all notifications as read
 		notificationManager.MarkAsRead(db, user)
 	} else if notificationID != nil {
-        // Mark single notification as read
+		// Mark single notification as read
 		err := notificationManager.ReadOne(db, user, *notificationID)
 		if err != nil {
 			return c.Status(404).JSON(err)

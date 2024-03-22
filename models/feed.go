@@ -4,17 +4,19 @@ import (
 	"fmt"
 
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
+	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
 	"gorm.io/gorm"
 )
 
 type FeedAbstract struct {
 	BaseModel
-	AuthorID  uuid.UUID  `gorm:"not null"`
-	AuthorObj User       `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE"`
-	Text      string     `json:"text"`
-	Slug      string     `gorm:"unique;not null;" json:"slug"`
-	Reactions []Reaction `json:"-"`
+	AuthorID  uuid.UUID      `gorm:"not null" json:"-"`
+	AuthorObj User           `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE" json:"-"`
+	Author    UserDataSchema `gorm:"-" json:"author"`
+	Text      string         `json:"text"`
+	Slug      string         `gorm:"unique;not null;" json:"slug"`
+	Reactions []Reaction     `json:"-"`
 }
 
 func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
@@ -25,10 +27,43 @@ func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
 
 type Post struct {
 	FeedAbstract
-	ImageID  *uuid.UUID `gorm:"null"`
-	ImageObj *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
-	Image    *string    `gorm:"-" json:"image"`
-	Comments []Comment  `json:"-"`
+	ImageID        *uuid.UUID `gorm:"null" json:"-"`
+	ImageObj       *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
+	Image          *string    `gorm:"-" json:"image"`
+	Comments       []Comment  `json:"-"`
+	Reactions      []Reaction `json:"-"`
+	CommentsCount  int        `json:"comments_count"`
+	ReactionsCount int        `json:"reactions_count"`
+	FileUploadData *utils.SignatureFormat  `gorm:"-" json:"file_upload_data,omitempty"`
+}
+
+func (p Post) Init() Post {
+	p.ID = nil // Omit ID
+	p.Author = UserDataSchema{}.Init(p.AuthorObj)
+	p.Image = p.GetImageUrl()
+	p.CommentsCount = len(p.Comments)
+	p.ReactionsCount = len(p.Reactions)
+	return p
+}
+
+func (p Post) InitC(fileType *string) Post {
+	// Updating response for when post is created
+	p = p.Init()
+	image := p.ImageObj
+	if fileType != nil && image != nil { // Generate data when file is being uploaded
+		fuData := utils.GenerateFileSignature(image.ID.String(), "posts")
+		p.FileUploadData = &fuData
+	}
+	return p
+}
+
+func (p Post) GetImageUrl() *string {
+	image := p.ImageObj
+	if image != nil {
+		url := utils.GenerateFileUrl(image.ID.String(), "posts", image.ResourceType)
+		return &url
+	}
+	return nil
 }
 
 type Comment struct {

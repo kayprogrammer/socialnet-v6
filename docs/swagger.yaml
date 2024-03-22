@@ -36,33 +36,19 @@ definitions:
   models.Comment:
     properties:
       author:
-        $ref: '#/definitions/models.User'
-      authorID:
-        type: string
+        $ref: '#/definitions/models.UserDataSchema'
       created_at:
         type: string
       id:
         example: d10dde64-a242-4ed0-bd75-4c759644b3a6
         type: string
-      post:
-        $ref: '#/definitions/models.Post'
       postID:
         type: string
+      postObj:
+        $ref: '#/definitions/models.Post'
       slug:
         type: string
       text:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  models.File:
-    properties:
-      created_at:
-        type: string
-      id:
-        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
-        type: string
-      resource_type:
         type: string
       updated_at:
         type: string
@@ -108,18 +94,20 @@ definitions:
   models.Post:
     properties:
       author:
-        $ref: '#/definitions/models.User'
-      authorID:
-        type: string
+        $ref: '#/definitions/models.UserDataSchema'
+      comments_count:
+        type: integer
       created_at:
         type: string
+      file_upload_data:
+        $ref: '#/definitions/utils.SignatureFormat'
       id:
         example: d10dde64-a242-4ed0-bd75-4c759644b3a6
         type: string
       image:
-        $ref: '#/definitions/models.File'
-      imageID:
         type: string
+      reactions_count:
+        type: integer
       slug:
         type: string
       text:
@@ -130,13 +118,11 @@ definitions:
   models.Reply:
     properties:
       author:
-        $ref: '#/definitions/models.User'
-      authorID:
-        type: string
-      comment:
-        $ref: '#/definitions/models.Comment'
+        $ref: '#/definitions/models.UserDataSchema'
       commentID:
         type: string
+      commentObj:
+        $ref: '#/definitions/models.Comment'
       created_at:
         type: string
       id:
@@ -210,6 +196,18 @@ definitions:
         example: Doe
         type: string
       updated_at:
+        type: string
+      username:
+        example: john-doe
+        type: string
+    type: object
+  models.UserDataSchema:
+    properties:
+      avatar:
+        example: https://img.url
+        type: string
+      name:
+        example: John Doe
         type: string
       username:
         example: john-doe
@@ -294,6 +292,55 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/schemas.NotificationsResponseDataSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.PostInputResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Post'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.PostInputSchema:
+    properties:
+      file_type:
+        example: image/jpeg
+        type: string
+      text:
+        example: God is good
+        type: string
+    required:
+    - text
+    type: object
+  schemas.PostsResponseDataSchema:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+      posts:
+        items:
+          $ref: '#/definitions/models.Post'
+        type: array
+    type: object
+  schemas.PostsResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.PostsResponseDataSchema'
       message:
         example: Data fetched/created/updated/deleted
         type: string
@@ -492,6 +539,18 @@ definitions:
         type: string
       status:
         type: string
+    type: object
+  utils.SignatureFormat:
+    properties:
+      public_id:
+        example: images/f47ac10b-58cc-4372-a567-0e02b2c3d479
+        type: string
+      signature:
+        example: e1ba4683fbbf90b75ca22e9f8e545b18c6b24eae
+        type: string
+      timestamp:
+        example: 1678828200
+        type: integer
     type: object
 info:
   contact: {}
@@ -718,6 +777,42 @@ paths:
       summary: Verify a user's email
       tags:
       - Auth
+  /feed/posts:
+    get:
+      description: This endpoint retrieves paginated responses of latest posts
+      parameters:
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.PostsResponseSchema'
+      summary: Retrieve Latest Posts
+      tags:
+      - Feed
+    post:
+      description: This endpoint creates a new post
+      parameters:
+      - description: Post object
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.PostInputSchema'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schemas.PostInputResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Create Post
+      tags:
+      - Feed
   /general/site-detail:
     get:
       description: This endpoint retrieves few details of the site/application.

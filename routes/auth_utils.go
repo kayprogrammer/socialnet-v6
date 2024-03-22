@@ -1,14 +1,14 @@
 package routes
 
 import (
-	"log"
-	"time"
-	"github.com/pborman/uuid"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/utils"
+	"github.com/pborman/uuid"
 	"gorm.io/gorm"
+	"log"
+	"time"
 )
 
 var cfg = config.GetConfig()
@@ -81,7 +81,7 @@ func DecodeAccessToken(token string, db *gorm.DB) (*models.User, *string) {
 	}
 	user := models.User{BaseModel: models.BaseModel{ID: claims.UserId}, Access: &token}
 	// Fetch Jwt model object
-	result := db.Preload("CityObj", "AvatarObj").Take(&user, user)
+	result := db.Preload("CityObj").Preload("CityObj.RegionObj").Preload("CityObj.CountryObj").Preload("AvatarObj").Take(&user, user)
 	if result.Error != nil {
 		return nil, &tokenErr
 	}

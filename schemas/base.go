@@ -21,7 +21,7 @@ type UserDataSchema struct {
 	Avatar   *string `json:"avatar" example:"https://img.url"`
 }
 
-func (user UserDataSchema) Init(userObj *models.User) UserDataSchema {
+func (user UserDataSchema) Init(userObj models.User) UserDataSchema {
 	user.Name = userObj.FullName()
 	user.Username = userObj.Username
 	user.Avatar = userObj.GetAvatarUrl()
