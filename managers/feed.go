@@ -37,7 +37,7 @@ func (obj PostManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*model
 	post := models.Post{FeedAbstract: models.FeedAbstract{Slug: slug}}
 	q := db
 	if len(opts) > 0 { // Detailed param provided.
-		q = db.Preload(clause.Associations)
+		q = db.Preload("AuthorObj.AvatarObj").Preload("Reactions").Preload("Comments")
 	}
 	q.Take(&post, post)
 	if post.ID == nil {
@@ -48,7 +48,7 @@ func (obj PostManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*model
 	return &post, nil, nil
 }
 
-func (obj PostManager) Update(db *gorm.DB, post models.Post, postData schemas.PostInputSchema) models.Post {
+func (obj PostManager) Update(db *gorm.DB, post *models.Post, postData schemas.PostInputSchema) *models.Post {
 	if postData.FileType != nil {
 		// Create or Update Image Object
 		image := models.File{ResourceType: *postData.FileType}.UpdateOrCreate(db, post.ImageID)

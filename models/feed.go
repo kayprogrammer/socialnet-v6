@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 
+	"github.com/gosimple/slug"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
@@ -20,21 +21,23 @@ type FeedAbstract struct {
 }
 
 func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
+	id := uuid.Parse(uuid.New()) 
+	obj.ID = id
 	// Create slug
-	obj.Slug = fmt.Sprintf("%s-%s-%s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, obj.ID)
+	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
 	return
 }
 
 type Post struct {
 	FeedAbstract
-	ImageID        *uuid.UUID `gorm:"null" json:"-"`
-	ImageObj       *File      `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
-	Image          *string    `gorm:"-" json:"image"`
-	Comments       []Comment  `json:"-"`
-	Reactions      []Reaction `json:"-"`
-	CommentsCount  int        `json:"comments_count"`
-	ReactionsCount int        `json:"reactions_count"`
-	FileUploadData *utils.SignatureFormat  `gorm:"-" json:"file_upload_data,omitempty"`
+	ImageID        *uuid.UUID             `gorm:"null" json:"-"`
+	ImageObj       *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
+	Image          *string                `gorm:"-" json:"image"`
+	Comments       []Comment              `json:"-"`
+	Reactions      []Reaction             `json:"-"`
+	CommentsCount  int                    `json:"comments_count"`
+	ReactionsCount int                    `json:"reactions_count"`
+	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
 }
 
 func (p Post) Init() Post {

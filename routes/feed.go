@@ -5,6 +5,7 @@ import (
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
+	"github.com/kayprogrammer/socialnet-v6/utils"
 )
 
 var postManager = managers.PostManager{}
@@ -62,101 +63,95 @@ func (endpoint Endpoint) CreatePost(c *fiber.Ctx) error {
 	return c.Status(201).JSON(response)
 }
 
-// // @Summary Retrieve Single Post
-// // @Description This endpoint retrieves a single post
-// // @Tags Feed
-// // @Param slug path string true "Post slug"
-// // @Success 200 {object} schemas.PostResponseSchema
-// // @Router /feed/posts/{slug} [get]
-// func (endpoint Endpoint) RetrievePost(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
+// @Summary Retrieve Single Post
+// @Description This endpoint retrieves a single post
+// @Tags Feed
+// @Param slug path string true "Post slug"
+// @Success 200 {object} schemas.PostResponseSchema
+// @Router /feed/posts/{slug} [get]
+func (endpoint Endpoint) RetrievePost(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
 
-// 	// Retrieve, Convert type and return Post
-// 	post, errCode, errData := postManager.GetBySlug(db, slug, true)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
-// 	convertedPost := utils.ConvertStructData(post, schemas.PostSchema{}).(*schemas.PostSchema)
-// 	response := schemas.PostResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Post Detail fetched"}.Init(),
-// 		Data:           convertedPost.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Retrieve, Convert type and return Post
+	post, errCode, errData := postManager.GetBySlug(db, slug, true)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
+	response := schemas.PostResponseSchema{
+		ResponseSchema: SuccessResponse("Post Detail fetched"),
+		Data:           post.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Update Post
-// // @Description This endpoint updates a post
-// // @Tags Feed
-// // @Param slug path string true "Post slug"
-// // @Param post body schemas.PostInputSchema true "Post object"
-// // @Success 200 {object} schemas.PostInputResponseSchema
-// // @Router /feed/posts/{slug} [put]
-// // @Security BearerAuth
-// func (endpoint Endpoint) UpdatePost(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := RequestUser(c)
-// 	slug := c.Params("slug")
+// @Summary Update Post
+// @Description This endpoint updates a post
+// @Tags Feed
+// @Param slug path string true "Post slug"
+// @Param post body schemas.PostInputSchema true "Post object"
+// @Success 200 {object} schemas.PostInputResponseSchema
+// @Router /feed/posts/{slug} [put]
+// @Security BearerAuth
+func (endpoint Endpoint) UpdatePost(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
+	slug := c.Params("slug")
 
-// 	postData := schemas.PostInputSchema{}
+	data := schemas.PostInputSchema{}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &postData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(postData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Retrieve & Validate Post Existence
-// 	post, errCode, errData := postManager.GetBySlug(db, slug, true)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Retrieve & Validate Post Existence
+	post, errCode, errData := postManager.GetBySlug(db, slug, true)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate Post ownership
-// 	if post.AuthorID != user.ID {
-// 		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "This Post isn't yours"))
-// 	}
+	// Validate Post ownership
+	if post.AuthorID.String() != user.ID.String() {
+		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "This Post isn't yours"))
+	}
 
-// 	// Update, Convert type and return Post
-// 	post = postManager.Update(db, post, postData)
-// 	convertedPost := utils.ConvertStructData(post, schemas.PostInputResponseDataSchema{}).(*schemas.PostInputResponseDataSchema)
-// 	response := schemas.PostInputResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Post updated"}.Init(),
-// 		Data:           convertedPost.Init(postData.FileType),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Update, Convert type and return Post
+	post = postManager.Update(db, post, data)
+	response := schemas.PostInputResponseSchema{
+		ResponseSchema: SuccessResponse("Post updated"),
+		Data:           post.InitC(data.FileType),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Delete a Post
-// // @Description This endpoint deletes a post
-// // @Tags Feed
-// // @Param slug path string true "Post slug"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /feed/posts/{slug} [delete]
-// // @Security BearerAuth
-// func (endpoint Endpoint) DeletePost(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Delete a Post
+// @Description This endpoint deletes a post
+// @Tags Feed
+// @Param slug path string true "Post slug"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /feed/posts/{slug} [delete]
+// @Security BearerAuth
+func (endpoint Endpoint) DeletePost(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Retrieve & Validate Post Existence
-// 	post, errCode, errData := postManager.GetBySlug(db, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Retrieve & Validate Post Existence
+	post, errCode, errData := postManager.GetBySlug(db, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate Post ownership
-// 	if post.AuthorID != user.ID {
-// 		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "This Post isn't yours"))
-// 	}
+	// Validate Post ownership
+	if post.AuthorID.String() != user.ID.String() {
+		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "This Post isn't yours"))
+	}
 
-// 	// Delete and return response
-// 	db.Post.DeleteOne(post).Exec(managers.Ctx)
-// 	response := schemas.ResponseSchema{Message: "Post Deleted"}.Init()
-// 	return c.Status(200).JSON(response)
-// }
+	// Delete and return response
+	db.Delete(&post)
+	return c.Status(200).JSON(SuccessResponse("Post Deleted"))
+}
 
 // var reactionManager = managers.ReactionManager{}
 

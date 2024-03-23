@@ -321,6 +321,17 @@ definitions:
     required:
     - text
     type: object
+  schemas.PostResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Post'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
   schemas.PostsResponseDataSchema:
     properties:
       current_page:
@@ -811,6 +822,65 @@ paths:
       security:
       - BearerAuth: []
       summary: Create Post
+      tags:
+      - Feed
+  /feed/posts/{slug}:
+    delete:
+      description: This endpoint deletes a post
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Delete a Post
+      tags:
+      - Feed
+    get:
+      description: This endpoint retrieves a single post
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.PostResponseSchema'
+      summary: Retrieve Single Post
+      tags:
+      - Feed
+    put:
+      description: This endpoint updates a post
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Post object
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.PostInputSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.PostInputResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Update Post
       tags:
       - Feed
   /general/site-detail:

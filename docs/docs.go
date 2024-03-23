@@ -380,6 +380,99 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed/posts/{slug}": {
+            "get": {
+                "description": "This endpoint retrieves a single post",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Retrieve Single Post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.PostResponseSchema"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint updates a post",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Update Post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Post object",
+                        "name": "post",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.PostInputSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.PostInputResponseSchema"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint deletes a post",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Delete a Post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/general/site-detail": {
             "get": {
                 "description": "This endpoint retrieves few details of the site/application.",
@@ -1206,6 +1299,22 @@ const docTemplate = `{
                 "text": {
                     "type": "string",
                     "example": "God is good"
+                }
+            }
+        },
+        "schemas.PostResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Post"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },
