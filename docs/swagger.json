@@ -465,6 +465,128 @@
                 }
             }
         },
+        "/feed/reactions/{focus}/{slug}": {
+            "get": {
+                "description": "This endpoint retrieves paginated responses of reactions of post, comment, reply",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Retrieve Latest Reactions of a Post, Comment, or Reply",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Specify the usage. Use any of the three: POST, COMMENT, REPLY",
+                        "name": "focus",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enter the slug of the post or comment or reply",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Reaction Type. Must be any of these: LIKE, LOVE, HAHA, WOW, SAD, ANGRY",
+                        "name": "reaction_type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ReactionsResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint creates a new reaction.",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Create Reaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Specify the usage. Use any of the three: POST, COMMENT, REPLY",
+                        "name": "focus",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Enter the slug of the post or comment or reply",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reaction object. rtype should be any of these: LIKE, LOVE, HAHA, WOW, SAD, ANGRY",
+                        "name": "post",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ReactionInputSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ReactionResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/reactions/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint deletes a reaction",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Remove Reaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Reaction id (uuid)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/general/site-detail": {
             "get": {
                 "description": "This endpoint retrieves few details of the site/application.",
@@ -848,6 +970,25 @@
                 "NADMIN"
             ]
         },
+        "choices.ReactionChoice": {
+            "type": "string",
+            "enum": [
+                "LIKE",
+                "LOVE",
+                "HAHA",
+                "WOW",
+                "SAD",
+                "ANGRY"
+            ],
+            "x-enum-varnames": [
+                "RLIKE",
+                "RLOVE",
+                "RHAHA",
+                "RWOW",
+                "RSAD",
+                "RANGRY"
+            ]
+        },
         "models.City": {
             "type": "object",
             "properties": {
@@ -995,6 +1136,32 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Reaction": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "rtype": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/choices.ReactionChoice"
+                        }
+                    ],
+                    "example": "LIKE"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.UserDataSchema"
                 }
             }
         },
@@ -1427,6 +1594,77 @@
             "properties": {
                 "data": {
                     "$ref": "#/definitions/schemas.ProfilesResponseDataSchema"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.ReactionInputSchema": {
+            "type": "object",
+            "required": [
+                "rtype"
+            ],
+            "properties": {
+                "rtype": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/choices.ReactionChoice"
+                        }
+                    ],
+                    "example": "LIKE"
+                }
+            }
+        },
+        "schemas.ReactionResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Reaction"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.ReactionsResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "reactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Reaction"
+                    }
+                }
+            }
+        },
+        "schemas.ReactionsResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.ReactionsResponseDataSchema"
                 },
                 "message": {
                     "type": "string",

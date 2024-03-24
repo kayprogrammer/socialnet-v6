@@ -80,7 +80,7 @@ func (endpoint Endpoint) RetrievePost(c *fiber.Ctx) error {
 	}
 	response := schemas.PostResponseSchema{
 		ResponseSchema: SuccessResponse("Post Detail fetched"),
-		Data:           post.Init(),
+		Data:           *post,
 	}
 	return c.Status(200).JSON(response)
 }
@@ -153,154 +153,148 @@ func (endpoint Endpoint) DeletePost(c *fiber.Ctx) error {
 	return c.Status(200).JSON(SuccessResponse("Post Deleted"))
 }
 
-// var reactionManager = managers.ReactionManager{}
+var reactionManager = managers.ReactionManager{}
 
-// // @Summary Retrieve Latest Reactions of a Post, Comment, or Reply
-// // @Description This endpoint retrieves paginated responses of reactions of post, comment, reply
-// // @Tags Feed
-// // @Param focus path string true "Specify the usage. Use any of the three: POST, COMMENT, REPLY"
-// // @Param slug path string true "Enter the slug of the post or comment or reply"
-// // @Param page query int false "Current Page" default(1)
-// // @Param reaction_type query string false "Reaction Type. Must be any of these: LIKE, LOVE, HAHA, WOW, SAD, ANGRY"
-// // @Success 200 {object} schemas.ReactionsResponseSchema
-// // @Router /feed/reactions/{focus}/{slug} [get]
-// func (endpoint Endpoint) RetrieveReactions(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	focus := c.Params("focus")
-// 	slug := c.Params("slug")
+// @Summary Retrieve Latest Reactions of a Post, Comment, or Reply
+// @Description This endpoint retrieves paginated responses of reactions of post, comment, reply
+// @Tags Feed
+// @Param focus path string true "Specify the usage. Use any of the three: POST, COMMENT, REPLY"
+// @Param slug path string true "Enter the slug of the post or comment or reply"
+// @Param page query int false "Current Page" default(1)
+// @Param reaction_type query string false "Reaction Type. Must be any of these: LIKE, LOVE, HAHA, WOW, SAD, ANGRY"
+// @Success 200 {object} schemas.ReactionsResponseSchema
+// @Router /feed/reactions/{focus}/{slug} [get]
+func (endpoint Endpoint) RetrieveReactions(c *fiber.Ctx) error {
+	db := endpoint.DB
+	focus := c.Params("focus")
+	slug := c.Params("slug")
 
-// 	// Validate Focus
-// 	err := ValidateReactionFocus(focus)
-// 	if err != nil {
-// 		return c.Status(404).JSON(err)
-// 	}
+	// Validate Focus
+	err := ValidateReactionFocus(focus)
+	if err != nil {
+		return c.Status(404).JSON(err)
+	}
 
-// 	// Paginate, Convert type and return Posts
-// 	reactions, errCode, errData := reactionManager.GetReactionsQueryset(db, c, focus, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
-// 	// Paginate, Convert type and return Reactions
-// 	paginatedData, paginatedReactions, err := PaginateQueryset(reactions, c)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
+	// Paginate, Convert type and return Posts
+	reactions, errCode, errData := reactionManager.GetReactionsQueryset(db, c, focus, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
+	// Paginate, Convert type and return Reactions
+	paginatedData, paginatedReactions, err := PaginateQueryset(reactions, c)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	reactions = paginatedReactions.([]models.Reaction)
+	response := schemas.ReactionsResponseSchema{
+		ResponseSchema: SuccessResponse("Reactions fetched"),
+		Data: schemas.ReactionsResponseDataSchema{
+			PaginatedResponseDataSchema: *paginatedData,
+			Items:                       reactions,
+		},
+	}
+	return c.Status(200).JSON(response)
+}
 
-// 	convertedReactions := utils.ConvertStructData(paginatedReactions, []schemas.ReactionSchema{}).(*[]schemas.ReactionSchema)
-// 	response := schemas.ReactionsResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Reactions fetched"}.Init(),
-// 		Data: schemas.ReactionsResponseDataSchema{
-// 			PaginatedResponseDataSchema: *paginatedData,
-// 			Items:                       *convertedReactions,
-// 		}.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+// @Summary Create Reaction
+// @Description This endpoint creates a new reaction.
+// @Tags Feed
+// @Param focus path string true "Specify the usage. Use any of the three: POST, COMMENT, REPLY"
+// @Param slug path string true "Enter the slug of the post or comment or reply"
+// @Param post body schemas.ReactionInputSchema true "Reaction object. rtype should be any of these: LIKE, LOVE, HAHA, WOW, SAD, ANGRY"
+// @Success 201 {object} schemas.ReactionResponseSchema
+// @Router /feed/reactions/{focus}/{slug} [post]
+// @Security BearerAuth
+func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
+	db := endpoint.DB
+	focus := c.Params("focus")
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// // @Summary Create Reaction
-// // @Description This endpoint creates a new reaction.
-// // @Tags Feed
-// // @Param focus path string true "Specify the usage. Use any of the three: POST, COMMENT, REPLY"
-// // @Param slug path string true "Enter the slug of the post or comment or reply"
-// // @Param post body schemas.ReactionInputSchema true "Reaction object. rtype should be any of these: LIKE, LOVE, HAHA, WOW, SAD, ANGRY"
-// // @Success 201 {object} schemas.ReactionResponseSchema
-// // @Router /feed/reactions/{focus}/{slug} [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	focus := c.Params("focus")
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+	// Validate Focus
+	err := ValidateReactionFocus(focus)
+	if err != nil {
+		return c.Status(404).JSON(err)
+	}
 
-// 	// Validate Focus
-// 	err := ValidateReactionFocus(focus)
-// 	if err != nil {
-// 		return c.Status(404).JSON(err)
-// 	}
+	data := schemas.ReactionInputSchema{}
 
-// 	reactionData := schemas.ReactionInputSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &reactionData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(reactionData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	// Update Or Create Reaction
+	reaction, _, errCode, errData := reactionManager.UpdateOrCreate(db, *user, focus, slug, data.Rtype)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Update Or Create Reaction
-// 	reaction, targetedObjAuthor, errCode, errData := reactionManager.UpdateOrCreate(db, user, focus, slug, reactionData.Rtype)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Convert type and return Reactions
+	response := schemas.ReactionResponseSchema{
+		ResponseSchema: SuccessResponse("Reaction created"),
+		Data:           *reaction,
+	}
 
-// 	// Convert type and return Reactions
-// 	convertedReaction := utils.ConvertStructData(reaction, schemas.ReactionSchema{}).(*schemas.ReactionSchema)
-// 	response := schemas.ReactionResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Reaction created"}.Init(),
-// 		Data:           convertedReaction.Init(),
-// 	}
+	// Create & Send Notifications
+	// if user.ID != targetedObjAuthor.ID {
+	// 	notification, created := notificationManager.GetOrCreate(
+	// 		db, user, "REACTION",
+	// 		[]uuid.UUID{targetedObjAuthor.ID},
+	// 		reaction.Edges.Post,
+	// 		reaction.Edges.Comment,
+	// 		reaction.Edges.Reply,
+	// 	)
 
-// 	// Create & Send Notifications
-// 	if user.ID != targetedObjAuthor.ID {
-// 		notification, created := notificationManager.GetOrCreate(
-// 			db, user, "REACTION",
-// 			[]uuid.UUID{targetedObjAuthor.ID},
-// 			reaction.Edges.Post,
-// 			reaction.Edges.Comment,
-// 			reaction.Edges.Reply,
-// 		)
+	// 	if created {
+	// 		SendNotificationInSocket(c, notification, nil, nil)
+	// 	}
+	// }
+	return c.Status(201).JSON(response)
+}
 
-// 		if created {
-// 			SendNotificationInSocket(c, notification, nil, nil)
-// 		}
-// 	}
-// 	return c.Status(201).JSON(response)
-// }
+// @Summary Remove Reaction
+// @Description This endpoint deletes a reaction
+// @Tags Feed
+// @Param id path string true "Reaction id (uuid)"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /feed/reactions/{id} [delete]
+// @Security BearerAuth
+func (endpoint Endpoint) DeleteReaction(c *fiber.Ctx) error {
+	db := endpoint.DB
+	id := c.Params("id")
+	// Parse the UUID parameter
+	reactionID, err := utils.ParseUUID(id)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	user := RequestUser(c)
 
-// // @Summary Remove Reaction
-// // @Description This endpoint deletes a reaction
-// // @Tags Feed
-// // @Param id path string true "Reaction id (uuid)"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /feed/reactions/{id} [delete]
-// // @Security BearerAuth
-// func (endpoint Endpoint) DeleteReaction(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	id := c.Params("id")
-// 	// Parse the UUID parameter
-// 	reactionID, err := utils.ParseUUID(id)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	user := RequestUser(c)
+	// Retrieve & Validate Reaction Existence & Ownership
+	reaction, errCode, errData := reactionManager.GetByID(db, reactionID)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Retrieve & Validate Reaction Existence & Ownership
-// 	reaction, errCode, errData := reactionManager.GetByID(db, *reactionID)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Validate Reaction ownership
+	if reaction.UserID.String() != user.ID.String() {
+		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "This Reaction isn't yours"))
+	}
 
-// 	// Validate Reaction ownership
-// 	if reaction.UserID != user.ID {
-// 		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "This Reaction isn't yours"))
-// 	}
+	// Remove Reaction Notifications
+	// notification := notificationManager.Get(
+	// 	db, user, "REACTION",
+	// 	reaction.Post, reaction.Comment, reaction.Reply,
+	// )
+	// if notification != nil {
+	// 	// Send to websocket and delete notification
+	// 	SendNotificationInSocket(c, notification, nil, nil, "DELETED")
+	// }
 
-// 	// Remove Reaction Notifications
-// 	notification := notificationManager.Get(
-// 		db, user, "REACTION",
-// 		reaction.Edges.Post, reaction.Edges.Comment, reaction.Edges.Reply,
-// 	)
-// 	if notification != nil {
-// 		// Send to websocket and delete notification
-// 		SendNotificationInSocket(c, notification, nil, nil, "DELETED")
-// 	}
-
-// 	// Delete reaction and return response
-// 	db.Reaction.DeleteOne(reaction).Exec(managers.Ctx)
-// 	response := schemas.ResponseSchema{Message: "Reaction Deleted"}.Init()
-// 	return c.Status(200).JSON(response)
-// }
+	// Delete reaction and return response
+	db.Delete(&reaction)
+	return c.Status(200).JSON(SuccessResponse("Reaction Deleted"))
+}
 
 // var commentManager = managers.CommentManager{}
 

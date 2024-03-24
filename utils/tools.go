@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/pborman/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -72,8 +72,8 @@ func CheckPasswordHash(password, hash string) bool {
 
 // UUID PARSER
 func ParseUUID(input string) (*uuid.UUID, *ErrorResponse) {
-	uuidVal, err := uuid.Parse(input)
-	if err != nil {
+	uuidVal := uuid.Parse(input)
+	if uuidVal == nil {
 		errData := RequestErr(ERR_INVALID_VALUE, "Invalid UUID")
 		return nil, &errData
 	}

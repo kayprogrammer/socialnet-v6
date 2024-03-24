@@ -2,6 +2,7 @@ package schemas
 
 import (
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 )
 
 type PostInputSchema struct {
@@ -10,23 +11,9 @@ type PostInputSchema struct {
 }
 
 // // REACTION SCHEMA
-// type ReactionSchema struct {
-//     ID 				uuid.UUID			`json:"id" example:"d10dde64-a242-4ed0-bd75-4c759644b3a6"`
-//     User 			UserDataSchema		`json:"user"`
-//     Rtype 			string				`json:"rtype" example:"LIKE"`
-// }
-
-// func (reaction ReactionSchema) Init() ReactionSchema {
-// 	// Set User Details.
-// 	reaction.User = reaction.User.Init(reaction.Edges.User)
-
-// 	reaction.Edges = nil // Omit edges
-// 	return reaction
-// }
-
-// type ReactionInputSchema struct {
-// 	Rtype		reaction.Rtype 			`json:"rtype" validate:"required,reaction_type_validator" example:"LIKE"`
-// }
+type ReactionInputSchema struct {
+	Rtype		choices.ReactionChoice 			`json:"rtype" validate:"required,reaction_type_validator" example:"LIKE"`
+}
 
 // // COMMENTS & REPLIES SCHEMA
 // type ReplySchema struct {
@@ -96,30 +83,21 @@ type PostInputResponseSchema struct {
 	Data models.Post `json:"data"`
 }
 
-// // REACTIONS
-// type ReactionsResponseDataSchema struct {
-// 	PaginatedResponseDataSchema
-// 	Items			[]ReactionSchema		`json:"reactions"`
-// }
+// REACTIONS
+type ReactionsResponseDataSchema struct {
+	PaginatedResponseDataSchema
+	Items			[]models.Reaction		`json:"reactions"`
+}
 
-// func (data ReactionsResponseDataSchema) Init () ReactionsResponseDataSchema {
-// 	// Set Initial Data
-// 	items := data.Items
-// 	for i := range items {
-// 		items[i] = items[i].Init()
-// 	}
-// 	data.Items = items
-// 	return data
-// }
-// type ReactionsResponseSchema struct {
-// 	ResponseSchema
-// 	Data			ReactionsResponseDataSchema		`json:"data"`
-// }
+type ReactionsResponseSchema struct {
+	ResponseSchema
+	Data			ReactionsResponseDataSchema		`json:"data"`
+}
 
-// type ReactionResponseSchema struct {
-// 	ResponseSchema
-// 	Data			ReactionSchema		`json:"data"`
-// }
+type ReactionResponseSchema struct {
+	ResponseSchema
+	Data			models.Reaction		`json:"data"`
+}
 
 // // COMMENTS & REPLIES
 // type CommentWithRepliesResponseDataSchema struct {

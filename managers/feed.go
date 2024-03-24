@@ -19,7 +19,7 @@ type PostManager struct {
 
 func (obj PostManager) All(db *gorm.DB) []models.Post {
 	posts := []models.Post{}
-	db.Preload(clause.Associations).Find(&posts).Order("created_at DESC")
+	db.Preload("AuthorObj").Preload("AuthorObj.AvatarObj").Preload("ImageObj").Preload("Reactions").Preload("Comments").Find(&posts).Order("created_at DESC")
 	return posts
 }
 
@@ -153,28 +153,28 @@ type ReactionManager struct {
 
 func (obj ReactionManager) GetReactionsQueryset(db *gorm.DB, fiberCtx *fiber.Ctx, focus string, slug string) ([]models.Reaction, *int, *utils.ErrorResponse) {
 	reactions := []models.Reaction{}
-	q := db.Preload("UserObj")
+	q := db.Preload("UserObj").Preload("UserObj.AvatarObj")
 	if focus == "POST" {
 		// Get Post Object and Query reactions for the post
 		post, errCode, errData := PostManager{}.GetBySlug(db, slug)
 		if errCode != nil {
 			return nil, errCode, errData
 		}
-		q = q.Where(models.Reaction{Post: *post})
+		q = q.Where(models.Reaction{Post: post})
 	} else if focus == "COMMENT" {
 		// Get Comment Object and Query reactions for the comment
 		comment, errCode, errData := CommentManager{}.GetBySlug(db, slug)
 		if errCode != nil {
 			return nil, errCode, errData
 		}
-		q = q.Where(models.Reaction{Comment: *comment})
+		q = q.Where(models.Reaction{Comment: comment})
 	} else {
 		// Get Reply Object and Query reactions for the reply
 		reply, errCode, errData := ReplyManager{}.GetBySlug(db, slug)
 		if errCode != nil {
 			return nil, errCode, errData
 		}
-		q = q.Where(models.Reaction{Reply: *reply})
+		q = q.Where(models.Reaction{Reply: reply})
 	}
 
 	// Filter by Reaction type if provided (e.g LIKE, LOVE)
@@ -189,11 +189,11 @@ func (obj ReactionManager) GetReactionsQueryset(db *gorm.DB, fiberCtx *fiber.Ctx
 func (obj ReactionManager) Update(db *gorm.DB, reaction models.Reaction, focus string, id uuid.UUID, rtype choices.ReactionChoice) models.Reaction {
 	reaction.Rtype = rtype
 	if focus == "POST" {
-		reaction.PostID = id
+		reaction.PostID = &id
 	} else if focus == "COMMENT" {
-		reaction.CommentID = id
+		reaction.CommentID = &id
 	} else {
-		reaction.ReplyID = id
+		reaction.ReplyID = &id
 	}
 	db.Save(&reaction)
 	return reaction
@@ -202,18 +202,18 @@ func (obj ReactionManager) Update(db *gorm.DB, reaction models.Reaction, focus s
 func (obj ReactionManager) Create(db *gorm.DB, user models.User, focus string, focusID uuid.UUID, rtype choices.ReactionChoice) models.Reaction {
 	reaction := models.Reaction{UserObj: user, Rtype: rtype}
 	if focus == "POST" {
-		reaction.PostID = focusID
+		reaction.PostID = &focusID
 	} else if focus == "COMMENT" {
-		reaction.CommentID = focusID
+		reaction.CommentID = &focusID
 	} else {
-		reaction.ReplyID = focusID
+		reaction.ReplyID = &focusID
 	}
 	db.Create(&reaction)
 	return reaction
 }
 
 func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus string, slug string, rtype choices.ReactionChoice) (*models.Reaction, *models.User, *int, *utils.ErrorResponse) {
-	q := db.Preload(clause.Associations)
+	q := db.Preload("UserObj").Preload("UserObj.AvatarObj")
 	var focusID *uuid.UUID
 	var targetedObjAuthor *models.User
 	reaction := models.Reaction{}
@@ -224,7 +224,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 			return nil, nil, errCode, errData
 		}
 		focusID = &post.ID
-		q = q.Where(models.Reaction{Post: *post})
+		q = q.Where(models.Reaction{Post: post})
 		targetedObjAuthor = &post.AuthorObj
 	} else if focus == "COMMENT" {
 		// Get Comment Object and Query reactions for the comment
@@ -233,7 +233,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 			return nil, nil, errCode, errData
 		}
 		focusID = &comment.ID
-		q = q.Where(models.Reaction{Comment: *comment})
+		q = q.Where(models.Reaction{Comment: comment})
 		targetedObjAuthor = &comment.AuthorObj
 	} else {
 		// Get Reply Object and Query reactions for the reply
@@ -242,7 +242,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 			return nil, nil, errCode, errData
 		}
 		focusID = &reply.ID
-		q = q.Where(models.Reaction{Reply: *reply})
+		q = q.Where(models.Reaction{Reply: reply})
 		targetedObjAuthor = &reply.AuthorObj
 	}
 	q.Take(&reaction, reaction)
@@ -257,9 +257,9 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 	return &reaction, targetedObjAuthor, nil, nil
 }
 
-func (obj ReactionManager) GetByID(db *gorm.DB, id uuid.UUID) (*models.Reaction, *int, *utils.ErrorResponse) {
+func (obj ReactionManager) GetByID(db *gorm.DB, id *uuid.UUID) (*models.Reaction, *int, *utils.ErrorResponse) {
 	reaction := models.Reaction{}
-	db.Preload(clause.Associations).Take(&reaction, models.Reaction{BaseModel: models.BaseModel{ID: id}})
+	db.Preload(clause.Associations).Take(&reaction, models.Reaction{BaseModel: models.BaseModel{ID: *id}})
 	if reaction.ID == nil {
 		statusCode := 404
 		errData := utils.RequestErr(utils.ERR_NON_EXISTENT, "Reaction does not exist")

@@ -14,6 +14,22 @@ definitions:
     - NCOMMENT
     - NREPLY
     - NADMIN
+  choices.ReactionChoice:
+    enum:
+    - LIKE
+    - LOVE
+    - HAHA
+    - WOW
+    - SAD
+    - ANGRY
+    type: string
+    x-enum-varnames:
+    - RLIKE
+    - RLOVE
+    - RHAHA
+    - RWOW
+    - RSAD
+    - RANGRY
   models.City:
     properties:
       country:
@@ -114,6 +130,22 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.Reaction:
+    properties:
+      created_at:
+        type: string
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      rtype:
+        allOf:
+        - $ref: '#/definitions/choices.ReactionChoice'
+        example: LIKE
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserDataSchema'
     type: object
   models.Reply:
     properties:
@@ -416,6 +448,53 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/schemas.ProfilesResponseDataSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.ReactionInputSchema:
+    properties:
+      rtype:
+        allOf:
+        - $ref: '#/definitions/choices.ReactionChoice'
+        example: LIKE
+    required:
+    - rtype
+    type: object
+  schemas.ReactionResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Reaction'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.ReactionsResponseDataSchema:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+      reactions:
+        items:
+          $ref: '#/definitions/models.Reaction'
+        type: array
+    type: object
+  schemas.ReactionsResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.ReactionsResponseDataSchema'
       message:
         example: Data fetched/created/updated/deleted
         type: string
@@ -881,6 +960,88 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Post
+      tags:
+      - Feed
+  /feed/reactions/{focus}/{slug}:
+    get:
+      description: This endpoint retrieves paginated responses of reactions of post,
+        comment, reply
+      parameters:
+      - description: 'Specify the usage. Use any of the three: POST, COMMENT, REPLY'
+        in: path
+        name: focus
+        required: true
+        type: string
+      - description: Enter the slug of the post or comment or reply
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      - description: 'Reaction Type. Must be any of these: LIKE, LOVE, HAHA, WOW,
+          SAD, ANGRY'
+        in: query
+        name: reaction_type
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ReactionsResponseSchema'
+      summary: Retrieve Latest Reactions of a Post, Comment, or Reply
+      tags:
+      - Feed
+    post:
+      description: This endpoint creates a new reaction.
+      parameters:
+      - description: 'Specify the usage. Use any of the three: POST, COMMENT, REPLY'
+        in: path
+        name: focus
+        required: true
+        type: string
+      - description: Enter the slug of the post or comment or reply
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 'Reaction object. rtype should be any of these: LIKE, LOVE, HAHA,
+          WOW, SAD, ANGRY'
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.ReactionInputSchema'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schemas.ReactionResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Create Reaction
+      tags:
+      - Feed
+  /feed/reactions/{id}:
+    delete:
+      description: This endpoint deletes a reaction
+      parameters:
+      - description: Reaction id (uuid)
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Remove Reaction
       tags:
       - Feed
   /general/site-detail:

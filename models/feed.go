@@ -21,7 +21,7 @@ type FeedAbstract struct {
 }
 
 func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
-	id := uuid.Parse(uuid.New()) 
+	id := uuid.Parse(uuid.New())
 	obj.ID = id
 	// Create slug
 	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
@@ -34,7 +34,6 @@ type Post struct {
 	ImageObj       *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
 	Image          *string                `gorm:"-" json:"image"`
 	Comments       []Comment              `json:"-"`
-	Reactions      []Reaction             `json:"-"`
 	CommentsCount  int                    `json:"comments_count"`
 	ReactionsCount int                    `json:"reactions_count"`
 	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
@@ -51,7 +50,7 @@ func (p Post) Init() Post {
 
 func (p Post) InitC(fileType *string) Post {
 	// Updating response for when post is created
-	p = p.Init()
+	p.Init()
 	image := p.ImageObj
 	if fileType != nil && image != nil { // Generate data when file is being uploaded
 		fuData := utils.GenerateFileSignature(image.ID.String(), "posts")
@@ -84,13 +83,28 @@ type Reply struct {
 
 type Reaction struct {
 	BaseModel
-	UserID    uuid.UUID              `gorm:"not null;index:,unique,composite:user_id_post_id;index:,unique,composite:user_id_comment_id;index:,unique,composite:user_id_reply_id"`
-	UserObj   User                   `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Rtype     choices.ReactionChoice `gorm:"varchar(50)"`
-	PostID    uuid.UUID              `gorm:"null;index:,unique,composite:user_id_post_id"`
-	Post      Post                   `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
-	CommentID uuid.UUID              `gorm:"null;index:,unique,composite:user_id_comment_id"`
-	Comment   Comment                `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
-	ReplyID   uuid.UUID              `gorm:"null;index:,unique,composite:user_id_reply_id"`
-	Reply     Reply                  `gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE"`
+	UserID    uuid.UUID              `json:"-" gorm:"not null;index:,unique,composite:user_id_post_id;index:,unique,composite:user_id_comment_id;index:,unique,composite:user_id_reply_id"`
+	UserObj   User                   `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	User      UserDataSchema         `gorm:"-" json:"user"`
+	Rtype     choices.ReactionChoice `gorm:"varchar(50)" json:"rtype" example:"LIKE"`
+	PostID    *uuid.UUID              `json:"-" gorm:"null;index:,unique,composite:user_id_post_id"`
+	Post      *Post                   `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	CommentID *uuid.UUID              `json:"-" gorm:"null;index:,unique,composite:user_id_comment_id"`
+	Comment   *Comment                `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+	ReplyID   *uuid.UUID              `json:"-" gorm:"null;index:,unique,composite:user_id_reply_id"`
+	Reply     *Reply                  `json:"-" gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE"`
+}
+
+func (r *Reaction) Init() {
+	r.User = UserDataSchema{}.Init(r.UserObj)
+}
+
+func (r *Reaction) AfterFind(tx *gorm.DB) (err error) {
+	r.Init()
+	return
+}
+
+func (r *Reaction) AfterCreate(tx *gorm.DB) (err error) {
+	r.Init()
+	return
 }
