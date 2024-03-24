@@ -473,6 +473,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed/posts/{slug}/comments": {
+            "get": {
+                "description": "This endpoint retrieves comments of a particular post",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Retrieve Post Comments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.CommentsResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "This endpoint creates a new comment for a particular post",
+                "tags": [
+                    "Feed"
+                ],
+                "summary": "Create Comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment object",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.CommentInputSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.CommentResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/feed/reactions/{focus}/{slug}": {
             "get": {
                 "description": "This endpoint retrieves paginated responses of reactions of post, comment, reply",
@@ -1037,11 +1108,12 @@ const docTemplate = `{
                     "type": "string",
                     "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
                 },
-                "postID": {
-                    "type": "string"
+                "reactions_count": {
+                    "type": "integer"
                 },
-                "postObj": {
-                    "$ref": "#/definitions/models.Post"
+                "replies_count": {
+                    "type": "integer",
+                    "example": 50
                 },
                 "slug": {
                     "type": "string"
@@ -1191,6 +1263,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string",
                     "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "reactions_count": {
+                    "type": "integer"
                 },
                 "slug": {
                     "type": "string"
@@ -1345,6 +1420,70 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.City"
                     }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.CommentInputSchema": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "example": "Jesus is Lord"
+                }
+            }
+        },
+        "schemas.CommentResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Comment"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.CommentsResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Comment"
+                    }
+                },
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "schemas.CommentsResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.CommentsResponseDataSchema"
                 },
                 "message": {
                     "type": "string",

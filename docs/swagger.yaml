@@ -58,10 +58,11 @@ definitions:
       id:
         example: d10dde64-a242-4ed0-bd75-4c759644b3a6
         type: string
-      postID:
-        type: string
-      postObj:
-        $ref: '#/definitions/models.Post'
+      reactions_count:
+        type: integer
+      replies_count:
+        example: 50
+        type: integer
       slug:
         type: string
       text:
@@ -160,6 +161,8 @@ definitions:
       id:
         example: d10dde64-a242-4ed0-bd75-4c759644b3a6
         type: string
+      reactions_count:
+        type: integer
       slug:
         type: string
       text:
@@ -268,6 +271,50 @@ definitions:
         items:
           $ref: '#/definitions/models.City'
         type: array
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.CommentInputSchema:
+    properties:
+      text:
+        example: Jesus is Lord
+        type: string
+    type: object
+  schemas.CommentResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Comment'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.CommentsResponseDataSchema:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/models.Comment'
+        type: array
+      current_page:
+        example: 1
+        type: integer
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+    type: object
+  schemas.CommentsResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.CommentsResponseDataSchema'
       message:
         example: Data fetched/created/updated/deleted
         type: string
@@ -960,6 +1007,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Post
+      tags:
+      - Feed
+  /feed/posts/{slug}/comments:
+    get:
+      description: This endpoint retrieves comments of a particular post
+      parameters:
+      - description: Post Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.CommentsResponseSchema'
+      summary: Retrieve Post Comments
+      tags:
+      - Feed
+    post:
+      description: This endpoint creates a new comment for a particular post
+      parameters:
+      - description: Post Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Comment object
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CommentInputSchema'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schemas.CommentResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Create Comment
       tags:
       - Feed
   /feed/reactions/{focus}/{slug}:

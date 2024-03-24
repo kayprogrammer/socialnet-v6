@@ -18,14 +18,7 @@ type FeedAbstract struct {
 	Text      string         `json:"text"`
 	Slug      string         `gorm:"unique;not null;" json:"slug"`
 	Reactions []Reaction     `json:"-"`
-}
-
-func (obj *FeedAbstract) BeforeCreate(tx *gorm.DB) (err error) {
-	id := uuid.Parse(uuid.New())
-	obj.ID = id
-	// Create slug
-	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
-	return
+	ReactionsCount int        `json:"reactions_count" gorm:"-"`
 }
 
 type Post struct {
@@ -35,8 +28,15 @@ type Post struct {
 	Image          *string                `gorm:"-" json:"image"`
 	Comments       []Comment              `json:"-"`
 	CommentsCount  int                    `json:"comments_count"`
-	ReactionsCount int                    `json:"reactions_count"`
 	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
+}
+
+func (obj *Post) BeforeCreate(tx *gorm.DB) (err error) {
+	id := uuid.Parse(uuid.New())
+	obj.ID = id
+	// Create slug
+	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
+	return
 }
 
 func (p Post) Init() Post {
@@ -70,15 +70,40 @@ func (p Post) GetImageUrl() *string {
 
 type Comment struct {
 	FeedAbstract
-	PostID  uuid.UUID `gorm:"not null"`
-	PostObj Post      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	PostID  uuid.UUID `json:"-" gorm:"not null"`
+	PostObj Post      `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
 	Replies []Reply   `json:"-"`
+	RepliesCount int   `json:"replies_count" gorm:"-" example:"50"`
+}
+
+func (obj *Comment) BeforeCreate(tx *gorm.DB) (err error) {
+	id := uuid.Parse(uuid.New())
+	obj.ID = id
+	// Create slug
+	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
+	return
+}
+
+func (c Comment) Init() Comment {
+	c.ID = nil // Omit ID
+	c.Author = UserDataSchema{}.Init(c.AuthorObj)
+	c.RepliesCount = len(c.Replies)
+	c.ReactionsCount = len(c.Reactions)
+	return c
 }
 
 type Reply struct {
 	FeedAbstract
 	CommentID  uuid.UUID `gorm:"not null"`
 	CommentObj Comment   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+}
+
+func (obj *Reply) BeforeCreate(tx *gorm.DB) (err error) {
+	id := uuid.Parse(uuid.New())
+	obj.ID = id
+	// Create slug
+	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
+	return
 }
 
 type Reaction struct {

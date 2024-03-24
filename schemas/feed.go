@@ -31,25 +31,9 @@ type ReactionInputSchema struct {
 // 	reply.Edges = nil // Omit edges
 // 	return reply
 // }
-
-// type CommentSchema struct {
-// 	ReplySchema
-// 	Edges        			*ent.CommentEdges 		`json:"edges,omitempty" swaggerignore:"true"`
-// 	RepliesCount			uint					`json:"replies_count" example:"50"`
-// }
-
-// func (comment CommentSchema) Init() CommentSchema {
-// 	// Set Related Data.
-// 	comment.Author = comment.Author.Init(comment.Edges.Author)
-// 	comment.ReactionsCount = uint(len(comment.Edges.Reactions))
-// 	comment.RepliesCount = uint(len(comment.Edges.Replies))
-// 	comment.Edges = nil // Omit edges
-// 	return comment
-// }
-
-// type CommentInputSchema struct {
-// 	Text			string 			`json:"text" example:"Jesus is Lord"`
-// }
+type CommentInputSchema struct {
+	Text			string 			`json:"text" example:"Jesus is Lord"`
+}
 
 // RESPONSE SCHEMAS
 // POSTS
@@ -99,7 +83,7 @@ type ReactionResponseSchema struct {
 	Data			models.Reaction		`json:"data"`
 }
 
-// // COMMENTS & REPLIES
+// COMMENTS & REPLIES
 // type CommentWithRepliesResponseDataSchema struct {
 // 	PaginatedResponseDataSchema
 // 	Items			[]ReplySchema		`json:"items"`
@@ -120,30 +104,30 @@ type ReactionResponseSchema struct {
 // 	Replies			CommentWithRepliesResponseDataSchema		`json:"replies"`
 // }
 
-// type CommentsResponseDataSchema struct {
-// 	PaginatedResponseDataSchema
-// 	Items		[]CommentSchema				`json:"comments"`
-// }
+type CommentsResponseDataSchema struct {
+	PaginatedResponseDataSchema
+	Items		[]models.Comment				`json:"comments"`
+}
 
-// func (data CommentsResponseDataSchema) Init () CommentsResponseDataSchema {
-// 	// Set Initial Data
-// 	items := data.Items
-// 	for i := range items {
-// 		items[i] = items[i].Init()
-// 	}
-// 	data.Items = items
-// 	return data
-// }
+func (data CommentsResponseDataSchema) Init () CommentsResponseDataSchema {
+	// Set Initial Data
+	items := data.Items
+	for i := range items {
+		items[i] = items[i].Init()
+	}
+	data.Items = items
+	return data
+}
 
-// type CommentsResponseSchema struct {
-// 	ResponseSchema
-// 	Data			CommentsResponseDataSchema		`json:"data"`
-// }
+type CommentsResponseSchema struct {
+	ResponseSchema
+	Data			CommentsResponseDataSchema		`json:"data"`
+}
 
-// type CommentResponseSchema struct {
-// 	ResponseSchema
-// 	Data			CommentSchema			`json:"data"`
-// }
+type CommentResponseSchema struct {
+	ResponseSchema
+	Data			models.Comment			`json:"data"`
+}
 
 // type CommentWithRepliesResponseSchema struct {
 // 	ResponseSchema

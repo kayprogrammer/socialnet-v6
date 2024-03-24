@@ -296,88 +296,84 @@ func (endpoint Endpoint) DeleteReaction(c *fiber.Ctx) error {
 	return c.Status(200).JSON(SuccessResponse("Reaction Deleted"))
 }
 
-// var commentManager = managers.CommentManager{}
+var commentManager = managers.CommentManager{}
 
-// // @Summary Retrieve Post Comments
-// // @Description This endpoint retrieves comments of a particular post
-// // @Tags Feed
-// // @Param slug path string true "Post Slug"
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.CommentsResponseSchema
-// // @Router /feed/posts/{slug}/comments [get]
-// func (endpoint Endpoint) RetrieveComments(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
+// @Summary Retrieve Post Comments
+// @Description This endpoint retrieves comments of a particular post
+// @Tags Feed
+// @Param slug path string true "Post Slug"
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.CommentsResponseSchema
+// @Router /feed/posts/{slug}/comments [get]
+func (endpoint Endpoint) RetrieveComments(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
 
-// 	// Get Post
-// 	post, errCode, errData := postManager.GetBySlug(db, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Get Post
+	post, errCode, errData := postManager.GetBySlug(db, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Get Comments
-// 	comments := commentManager.GetByPostID(db, post.ID)
+	// Get Comments
+	comments := commentManager.GetByPostID(db, post.ID)
 
-// 	// Paginate, Convert type and return comments
-// 	paginatedData, paginatedComments, err := PaginateQueryset(comments, c)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedComments := utils.ConvertStructData(paginatedComments, []schemas.CommentSchema{}).(*[]schemas.CommentSchema)
-// 	response := schemas.CommentsResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Comments fetched"}.Init(),
-// 		Data: schemas.CommentsResponseDataSchema{
-// 			PaginatedResponseDataSchema: *paginatedData,
-// 			Items:                       *convertedComments,
-// 		}.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Paginate, Convert type and return comments
+	paginatedData, paginatedComments, err := PaginateQueryset(comments, c)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	comments = paginatedComments.([]models.Comment)
+	response := schemas.CommentsResponseSchema{
+		ResponseSchema: SuccessResponse("Comments fetched"),
+		Data: schemas.CommentsResponseDataSchema{
+			PaginatedResponseDataSchema: *paginatedData,
+			Items:                       comments,
+		}.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Create Comment
-// // @Description This endpoint creates a new comment for a particular post
-// // @Tags Feed
-// // @Param slug path string true "Post Slug"
-// // @Param comment body schemas.CommentInputSchema true "Comment object"
-// // @Success 201 {object} schemas.CommentResponseSchema
-// // @Router /feed/posts/{slug}/comments [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) CreateComment(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Create Comment
+// @Description This endpoint creates a new comment for a particular post
+// @Tags Feed
+// @Param slug path string true "Post Slug"
+// @Param comment body schemas.CommentInputSchema true "Comment object"
+// @Success 201 {object} schemas.CommentResponseSchema
+// @Router /feed/posts/{slug}/comments [post]
+// @Security BearerAuth
+func (endpoint Endpoint) CreateComment(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Get Post
-// 	post, errCode, errData := postManager.GetBySlug(db, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Get Post
+	post, errCode, errData := postManager.GetBySlug(db, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	commentData := schemas.CommentInputSchema{}
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &commentData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(commentData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	data := schemas.CommentInputSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Create Comment
-// 	comment := commentManager.Create(db, user, post.ID, commentData.Text)
+	// Create Comment
+	comment := commentManager.Create(db, *user, *post, data.Text)
 
-// 	// Created & Send Notification
-// 	if user.ID != post.AuthorID {
-// 		notification := notificationManager.Create(db, user, "COMMENT", []uuid.UUID{post.AuthorID}, nil, comment, nil, nil)
-// 		SendNotificationInSocket(c, notification, nil, nil)
-// 	}
-// 	// Convert type and return comment
-// 	convertedComment := utils.ConvertStructData(comment, schemas.CommentSchema{}).(*schemas.CommentSchema)
-// 	response := schemas.CommentResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Comment created"}.Init(),
-// 		Data:           convertedComment.Init(),
-// 	}
-// 	return c.Status(201).JSON(response)
-// }
+	// Created & Send Notification
+	// if user.ID != post.AuthorID {
+	// 	notification := notificationManager.Create(db, user, "COMMENT", []uuid.UUID{post.AuthorID}, nil, comment, nil, nil)
+	// 	SendNotificationInSocket(c, notification, nil, nil)
+	// }
+	// Convert type and return comment
+	response := schemas.CommentResponseSchema{
+		ResponseSchema: SuccessResponse("Comment created"),
+		Data:           comment.Init(),
+	}
+	return c.Status(201).JSON(response)
+}
 
 // // @Summary Retrieve Comment with replies
 // // @Description This endpoint retrieves a comment with replies

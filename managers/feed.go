@@ -86,14 +86,16 @@ func (obj CommentManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*mo
 
 func (obj CommentManager) GetByPostID(db *gorm.DB, postID uuid.UUID) []models.Comment {
 	comments := []models.Comment{}
-	db.Preload(clause.Associations).Where(models.Comment{PostID: postID}).Find(&comments)
+	db.Preload("Replies").Preload("Reactions").Preload("AuthorObj").Preload("AuthorObj.AvatarObj").Where(models.Comment{PostID: postID}).Find(&comments)
 	return comments
 }
 
 func (obj CommentManager) Create(db *gorm.DB, author models.User, post models.Post, text string) models.Comment {
-	base := models.FeedAbstract{AuthorObj: author, Text: text}
-	comment := models.Comment{FeedAbstract: base, PostObj: post}
+	base := models.FeedAbstract{AuthorID: author.ID, Text: text}
+	comment := models.Comment{FeedAbstract: base, PostID: post.ID}
 	db.Create(&comment)
+	comment.AuthorObj = author
+	comment.PostObj = post
 	return comment
 }
 
