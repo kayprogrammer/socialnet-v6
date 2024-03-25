@@ -1,9 +1,6 @@
 package models
 
 import (
-	"fmt"
-
-	"github.com/gosimple/slug"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
@@ -27,16 +24,8 @@ type Post struct {
 	ImageObj       *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
 	Image          *string                `gorm:"-" json:"image"`
 	Comments       []Comment              `json:"-"`
-	CommentsCount  int                    `json:"comments_count"`
+	CommentsCount  int                    `json:"comments_count" gorm:"-"`
 	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
-}
-
-func (obj *Post) BeforeCreate(tx *gorm.DB) (err error) {
-	id := uuid.Parse(uuid.New())
-	obj.ID = id
-	// Create slug
-	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
-	return
 }
 
 func (p Post) Init() Post {
@@ -50,7 +39,7 @@ func (p Post) Init() Post {
 
 func (p Post) InitC(fileType *string) Post {
 	// Updating response for when post is created
-	p.Init()
+	p = p.Init()
 	image := p.ImageObj
 	if fileType != nil && image != nil { // Generate data when file is being uploaded
 		fuData := utils.GenerateFileSignature(image.ID.String(), "posts")
@@ -76,14 +65,6 @@ type Comment struct {
 	RepliesCount int   `json:"replies_count" gorm:"-" example:"50"`
 }
 
-func (obj *Comment) BeforeCreate(tx *gorm.DB) (err error) {
-	id := uuid.Parse(uuid.New())
-	obj.ID = id
-	// Create slug
-	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
-	return
-}
-
 func (c Comment) Init() Comment {
 	c.ID = nil // Omit ID
 	c.Author = UserDataSchema{}.Init(c.AuthorObj)
@@ -96,14 +77,6 @@ type Reply struct {
 	FeedAbstract
 	CommentID  uuid.UUID `gorm:"not null"`
 	CommentObj Comment   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
-}
-
-func (obj *Reply) BeforeCreate(tx *gorm.DB) (err error) {
-	id := uuid.Parse(uuid.New())
-	obj.ID = id
-	// Create slug
-	obj.Slug = slug.Make(fmt.Sprintf("%s %s %s", obj.AuthorObj.FirstName, obj.AuthorObj.LastName, id))
-	return
 }
 
 type Reaction struct {

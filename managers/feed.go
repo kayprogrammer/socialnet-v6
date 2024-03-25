@@ -1,7 +1,10 @@
 package managers
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/gosimple/slug"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
@@ -24,12 +27,21 @@ func (obj PostManager) All(db *gorm.DB) []models.Post {
 }
 
 func (obj PostManager) Create(db *gorm.DB, author models.User, postData schemas.PostInputSchema) models.Post {
-	post := models.Post{FeedAbstract: models.FeedAbstract{AuthorObj: author, Text: postData.Text}}
+	id := uuid.Parse(uuid.New())
+	// Create slug
+	slug := slug.Make(fmt.Sprintf("%s %s %s", author.FirstName, author.LastName, id))
+	base := models.BaseModel{ID: id}
+	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, Text: postData.Text}
+
+	post := models.Post{FeedAbstract: sub_base}
 	if postData.FileType != nil {
 		file := models.File{ResourceType: *postData.FileType}
 		post.ImageObj = &file
 	}
 	db.Create(&post)
+
+	// Set related data
+	post.AuthorObj = author
 	return post
 }
 
@@ -91,9 +103,16 @@ func (obj CommentManager) GetByPostID(db *gorm.DB, postID uuid.UUID) []models.Co
 }
 
 func (obj CommentManager) Create(db *gorm.DB, author models.User, post models.Post, text string) models.Comment {
-	base := models.FeedAbstract{AuthorID: author.ID, Text: text}
-	comment := models.Comment{FeedAbstract: base, PostID: post.ID}
+	id := uuid.Parse(uuid.New())
+	// Create slug
+	slug := slug.Make(fmt.Sprintf("%s %s %s", author.FirstName, author.LastName, id))
+	base := models.BaseModel{ID: id}
+	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, Text: text}
+	
+	comment := models.Comment{FeedAbstract: sub_base, PostID: post.ID}
 	db.Create(&comment)
+
+	// Set related data
 	comment.AuthorObj = author
 	comment.PostObj = post
 	return comment
@@ -131,9 +150,17 @@ func (obj ReplyManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*mode
 }
 
 func (obj ReplyManager) Create(db *gorm.DB, author models.User, comment models.Comment, text string) models.Reply {
-	base := models.FeedAbstract{AuthorObj: author, Text: text}
-	reply := models.Reply{FeedAbstract: base, CommentObj: comment}
+	id := uuid.Parse(uuid.New())
+	// Create slug
+	slug := slug.Make(fmt.Sprintf("%s %s %s", author.FirstName, author.LastName, id))
+	base := models.BaseModel{ID: id}
+	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, Text: text}
+
+	reply := models.Reply{FeedAbstract: sub_base, CommentID: comment.ID}
 	db.Create(&reply)
+
+	// Set related data
+	reply.AuthorObj = author
 	return reply
 }
 
