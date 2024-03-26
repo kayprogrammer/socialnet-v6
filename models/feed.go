@@ -75,10 +75,16 @@ func (c Comment) Init() Comment {
 
 type Reply struct {
 	FeedAbstract
-	CommentID  uuid.UUID `gorm:"not null"`
-	CommentObj Comment   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+	CommentID  uuid.UUID `json:"-" gorm:"not null"`
+	CommentObj Comment   `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
 }
 
+func (r Reply) Init() Reply {
+	r.ID = nil // Omit ID
+	r.Author = UserDataSchema{}.Init(r.AuthorObj)
+	r.ReactionsCount = len(r.Reactions)
+	return r
+}
 type Reaction struct {
 	BaseModel
 	UserID    uuid.UUID              `json:"-" gorm:"not null;index:,unique,composite:user_id_post_id;index:,unique,composite:user_id_comment_id;index:,unique,composite:user_id_reply_id"`

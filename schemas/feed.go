@@ -84,25 +84,25 @@ type ReactionResponseSchema struct {
 }
 
 // COMMENTS & REPLIES
-// type CommentWithRepliesResponseDataSchema struct {
-// 	PaginatedResponseDataSchema
-// 	Items			[]ReplySchema		`json:"items"`
-// }
+type CommentWithRepliesResponseDataSchema struct {
+	PaginatedResponseDataSchema
+	Items			[]models.Reply		`json:"items"`
+}
 
-// func (data CommentWithRepliesResponseDataSchema) Init () CommentWithRepliesResponseDataSchema {
-// 	// Set Initial Data
-// 	items := data.Items
-// 	for i := range items {
-// 		items[i] = items[i].Init()
-// 	}
-// 	data.Items = items
-// 	return data
-// }
+func (data CommentWithRepliesResponseDataSchema) Init () CommentWithRepliesResponseDataSchema {
+	// Set Initial Data
+	items := data.Items
+	for i := range items {
+		items[i] = items[i].Init()
+	}
+	data.Items = items
+	return data
+}
 
-// type CommentWithRepliesSchema struct {
-// 	Comment			CommentSchema								`json:"comment"`
-// 	Replies			CommentWithRepliesResponseDataSchema		`json:"replies"`
-// }
+type CommentWithRepliesSchema struct {
+	Comment			models.Comment								`json:"comment"`
+	Replies			CommentWithRepliesResponseDataSchema		`json:"replies"`
+}
 
 type CommentsResponseDataSchema struct {
 	PaginatedResponseDataSchema
@@ -129,12 +129,12 @@ type CommentResponseSchema struct {
 	Data			models.Comment			`json:"data"`
 }
 
-// type CommentWithRepliesResponseSchema struct {
-// 	ResponseSchema
-// 	Data			CommentWithRepliesSchema			`json:"data"`
-// }
+type CommentWithRepliesResponseSchema struct {
+	ResponseSchema
+	Data			CommentWithRepliesSchema			`json:"data"`
+}
 
-// type ReplyResponseSchema struct {
-// 	ResponseSchema
-// 	Data			ReplySchema			`json:"data"`
-// }
+type ReplyResponseSchema struct {
+	ResponseSchema
+	Data			models.Reply			`json:"data"`
+}

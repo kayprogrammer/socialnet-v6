@@ -14,6 +14,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func AuthorReactionScope(db *gorm.DB) *gorm.DB {
+	return db.Joins("AuthorObj").Joins("AuthorObj.AvatarObj").Preload("Reactions")
+}
+
 // ----------------------------------
 // POST MANAGEMENT
 // --------------------------------
@@ -22,7 +26,7 @@ type PostManager struct {
 
 func (obj PostManager) All(db *gorm.DB) []models.Post {
 	posts := []models.Post{}
-	db.Preload("AuthorObj").Preload("AuthorObj.AvatarObj").Preload("ImageObj").Preload("Reactions").Preload("Comments").Find(&posts).Order("created_at DESC")
+	db.Scopes(AuthorReactionScope).Joins("ImageObj").Preload("Comments").Find(&posts).Order("created_at DESC")
 	return posts
 }
 
@@ -31,17 +35,14 @@ func (obj PostManager) Create(db *gorm.DB, author models.User, postData schemas.
 	// Create slug
 	slug := slug.Make(fmt.Sprintf("%s %s %s", author.FirstName, author.LastName, id))
 	base := models.BaseModel{ID: id}
-	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, Text: postData.Text}
+	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorObj: author, AuthorID: author.ID, Text: postData.Text}
 
 	post := models.Post{FeedAbstract: sub_base}
 	if postData.FileType != nil {
 		file := models.File{ResourceType: *postData.FileType}
 		post.ImageObj = &file
 	}
-	db.Create(&post)
-
-	// Set related data
-	post.AuthorObj = author
+	db.Omit("AuthorObj").Create(&post)
 	return post
 }
 
@@ -49,7 +50,7 @@ func (obj PostManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*model
 	post := models.Post{FeedAbstract: models.FeedAbstract{Slug: slug}}
 	q := db
 	if len(opts) > 0 { // Detailed param provided.
-		q = db.Preload("AuthorObj.AvatarObj").Preload("Reactions").Preload("Comments")
+		q = db.Scopes(AuthorReactionScope).Preload("Comments")
 	}
 	q.Take(&post, post)
 	if post.ID == nil {
@@ -67,7 +68,7 @@ func (obj PostManager) Update(db *gorm.DB, post *models.Post, postData schemas.P
 		post.ImageObj = &image
 	}
 	post.Text = postData.Text
-	db.Save(&post)
+	db.Omit(clause.Associations).Save(&post)
 	return post
 }
 
@@ -85,7 +86,7 @@ func (obj CommentManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*mo
 	comment := models.Comment{FeedAbstract: models.FeedAbstract{Slug: slug}}
 	q := db
 	if len(opts) > 0 { // Detailed param provided.
-		q = q.Preload(clause.Associations)
+		q = q.Scopes(AuthorReactionScope).Preload("Replies").Preload("Replies.AuthorObj").Preload("Replies.AuthorObj.AvatarObj")
 	}
 	q.Take(&comment, comment)
 	if comment.ID == nil {
@@ -98,7 +99,7 @@ func (obj CommentManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*mo
 
 func (obj CommentManager) GetByPostID(db *gorm.DB, postID uuid.UUID) []models.Comment {
 	comments := []models.Comment{}
-	db.Preload("Replies").Preload("Reactions").Preload("AuthorObj").Preload("AuthorObj.AvatarObj").Where(models.Comment{PostID: postID}).Find(&comments)
+	db.Preload("Replies").Scopes(AuthorReactionScope).Where(models.Comment{PostID: postID}).Find(&comments)
 	return comments
 }
 
@@ -107,20 +108,16 @@ func (obj CommentManager) Create(db *gorm.DB, author models.User, post models.Po
 	// Create slug
 	slug := slug.Make(fmt.Sprintf("%s %s %s", author.FirstName, author.LastName, id))
 	base := models.BaseModel{ID: id}
-	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, Text: text}
-	
-	comment := models.Comment{FeedAbstract: sub_base, PostID: post.ID}
-	db.Create(&comment)
+	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, AuthorObj: author, Text: text}
 
-	// Set related data
-	comment.AuthorObj = author
-	comment.PostObj = post
+	comment := models.Comment{FeedAbstract: sub_base, PostID: post.ID, PostObj: post}
+	db.Omit("AuthorObj", "PostObj").Create(&comment)
 	return comment
 }
 
 func (obj CommentManager) Update(db *gorm.DB, comment models.Comment, author *models.User, text string) models.Comment {
 	comment.Text = text
-	db.Save(&comment)
+	db.Omit(clause.Associations).Save(&comment)
 	return comment
 }
 
@@ -138,7 +135,7 @@ func (obj ReplyManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*mode
 	reply := models.Reply{FeedAbstract: models.FeedAbstract{Slug: slug}}
 	q := db
 	if len(opts) > 0 { // Detailed param provided.
-		q = q.Preload(clause.Associations)
+		q = q.Scopes(AuthorReactionScope)
 	}
 	q.Take(&reply, reply)
 	if reply.ID == nil {
@@ -154,19 +151,16 @@ func (obj ReplyManager) Create(db *gorm.DB, author models.User, comment models.C
 	// Create slug
 	slug := slug.Make(fmt.Sprintf("%s %s %s", author.FirstName, author.LastName, id))
 	base := models.BaseModel{ID: id}
-	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, Text: text}
+	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, AuthorObj: author, Text: text}
 
 	reply := models.Reply{FeedAbstract: sub_base, CommentID: comment.ID}
-	db.Create(&reply)
-
-	// Set related data
-	reply.AuthorObj = author
+	db.Omit("AuthorObj").Create(&reply)
 	return reply
 }
 
 func (obj ReplyManager) Update(db *gorm.DB, reply models.Reply, author *models.User, text string) models.Reply {
 	reply.Text = text
-	db.Save(&reply)
+	db.Omit(clause.Associations).Save(&reply)
 	return reply
 }
 
@@ -177,12 +171,16 @@ func (obj ReplyManager) Update(db *gorm.DB, reply models.Reply, author *models.U
 // ----------------------------------
 // REACTIONS MANAGEMENT
 // --------------------------------
+func UserAvatarReactionScope(db *gorm.DB) *gorm.DB {
+	return db.Joins("UserObj").Joins("UserObj.AvatarObj")
+}
+
 type ReactionManager struct {
 }
 
 func (obj ReactionManager) GetReactionsQueryset(db *gorm.DB, fiberCtx *fiber.Ctx, focus string, slug string) ([]models.Reaction, *int, *utils.ErrorResponse) {
 	reactions := []models.Reaction{}
-	q := db.Preload("UserObj").Preload("UserObj.AvatarObj")
+	q := db.Scopes(UserAvatarReactionScope)
 	if focus == "POST" {
 		// Get Post Object and Query reactions for the post
 		post, errCode, errData := PostManager{}.GetBySlug(db, slug)
@@ -224,12 +222,12 @@ func (obj ReactionManager) Update(db *gorm.DB, reaction models.Reaction, focus s
 	} else {
 		reaction.ReplyID = &id
 	}
-	db.Save(&reaction)
+	db.Omit("UserObj").Save(&reaction)
 	return reaction
 }
 
 func (obj ReactionManager) Create(db *gorm.DB, user models.User, focus string, focusID uuid.UUID, rtype choices.ReactionChoice) models.Reaction {
-	reaction := models.Reaction{UserObj: user, Rtype: rtype}
+	reaction := models.Reaction{UserObj: user, UserID: user.ID, Rtype: rtype}
 	if focus == "POST" {
 		reaction.PostID = &focusID
 	} else if focus == "COMMENT" {
@@ -237,12 +235,12 @@ func (obj ReactionManager) Create(db *gorm.DB, user models.User, focus string, f
 	} else {
 		reaction.ReplyID = &focusID
 	}
-	db.Create(&reaction)
+	db.Omit("UserObj").Create(&reaction)
 	return reaction
 }
 
 func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus string, slug string, rtype choices.ReactionChoice) (*models.Reaction, *models.User, *int, *utils.ErrorResponse) {
-	q := db.Preload("UserObj").Preload("UserObj.AvatarObj")
+	q := db.Scopes(UserAvatarReactionScope)
 	var focusID *uuid.UUID
 	var targetedObjAuthor *models.User
 	reaction := models.Reaction{}
@@ -288,7 +286,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 
 func (obj ReactionManager) GetByID(db *gorm.DB, id *uuid.UUID) (*models.Reaction, *int, *utils.ErrorResponse) {
 	reaction := models.Reaction{}
-	db.Preload(clause.Associations).Take(&reaction, models.Reaction{BaseModel: models.BaseModel{ID: *id}})
+	db.Scopes(UserAvatarReactionScope).Take(&reaction, models.Reaction{BaseModel: models.BaseModel{ID: *id}})
 	if reaction.ID == nil {
 		statusCode := 404
 		errData := utils.RequestErr(utils.ERR_NON_EXISTENT, "Reaction does not exist")

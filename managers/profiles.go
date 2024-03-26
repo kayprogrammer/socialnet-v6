@@ -125,10 +125,13 @@ func (obj NotificationManager) GetOrCreate(db *gorm.DB, sender *models.User, nty
 	return notification, created
 }
 
-func (obj NotificationManager) Get(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, post *models.Post, comment *models.Comment, reply *models.Reply) models.Notification {
+func (obj NotificationManager) Get(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, post *models.Post, comment *models.Comment, reply *models.Reply) *models.Notification {
 	notification := models.Notification{Sender: sender, Ntype: ntype, Post: post, Comment: comment, Reply: reply}
 	db.Take(&notification, notification)
-	return notification
+	if notification.ID == nil {
+		return nil
+	}
+	return &notification
 }
 
 func (obj NotificationManager) IsAmongReceivers(db *gorm.DB, notificationID uuid.UUID, receiverID uuid.UUID) bool {

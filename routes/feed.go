@@ -375,270 +375,256 @@ func (endpoint Endpoint) CreateComment(c *fiber.Ctx) error {
 	return c.Status(201).JSON(response)
 }
 
-// // @Summary Retrieve Comment with replies
-// // @Description This endpoint retrieves a comment with replies
-// // @Tags Feed
-// // @Param slug path string true "Comment Slug"
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.CommentWithRepliesResponseSchema
-// // @Router /feed/comments/{slug} [get]
-// func (endpoint Endpoint) RetrieveCommentWithReplies(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
+// @Summary Retrieve Comment with replies
+// @Description This endpoint retrieves a comment with replies
+// @Tags Feed
+// @Param slug path string true "Comment Slug"
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.CommentWithRepliesResponseSchema
+// @Router /feed/comments/{slug} [get]
+func (endpoint Endpoint) RetrieveCommentWithReplies(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
 
-// 	// Get Comment
-// 	comment, errCode, errData := commentManager.GetBySlug(db, slug, true)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Get Comment
+	comment, errCode, errData := commentManager.GetBySlug(db, slug, true)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Paginate, Convert type and return replies
-// 	convertedComment := utils.ConvertStructData(comment, schemas.CommentSchema{}).(*schemas.CommentSchema)
-// 	paginatedData, paginatedReplies, err := PaginateQueryset(convertedComment.Edges.Replies, c)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedReplies := utils.ConvertStructData(paginatedReplies, []schemas.ReplySchema{}).(*[]schemas.ReplySchema)
-// 	response := schemas.CommentWithRepliesResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Comment with replies fetched"}.Init(),
-// 		Data: schemas.CommentWithRepliesSchema{
-// 			Comment: convertedComment.Init(),
-// 			Replies: schemas.CommentWithRepliesResponseDataSchema{
-// 				PaginatedResponseDataSchema: *paginatedData,
-// 				Items:                       *convertedReplies,
-// 			}.Init(),
-// 		},
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Paginate, Convert type and return replies
+	paginatedData, paginatedReplies, err := PaginateQueryset(comment.Replies, c)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	replies := paginatedReplies.([]models.Reply)
+	response := schemas.CommentWithRepliesResponseSchema{
+		ResponseSchema: SuccessResponse("Comment with replies fetched"),
+		Data: schemas.CommentWithRepliesSchema{
+			Comment: comment.Init(),
+			Replies: schemas.CommentWithRepliesResponseDataSchema{
+				PaginatedResponseDataSchema: *paginatedData,
+				Items:                       replies,
+			}.Init(),
+		},
+	}
+	return c.Status(200).JSON(response)
+}
 
-// var replyManager = managers.ReplyManager{}
+var replyManager = managers.ReplyManager{}
 
-// // @Summary Create Reply
-// // @Description This endpoint creates a reply for a comment
-// // @Tags Feed
-// // @Param slug path string true "Comment Slug"
-// // @Param reply body schemas.CommentInputSchema true "Reply object"
-// // @Success 201 {object} schemas.ReplyResponseSchema
-// // @Router /feed/comments/{slug} [post]
-// // @Security BearerAuth
-// func (endpoint Endpoint) CreateReply(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Create Reply
+// @Description This endpoint creates a reply for a comment
+// @Tags Feed
+// @Param slug path string true "Comment Slug"
+// @Param reply body schemas.CommentInputSchema true "Reply object"
+// @Success 201 {object} schemas.ReplyResponseSchema
+// @Router /feed/comments/{slug} [post]
+// @Security BearerAuth
+func (endpoint Endpoint) CreateReply(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Get Comment
-// 	comment, errCode, errData := commentManager.GetBySlug(db, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Get Comment
+	comment, errCode, errData := commentManager.GetBySlug(db, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	replyData := schemas.CommentInputSchema{}
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &replyData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(replyData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	data := schemas.CommentInputSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Create reply
-// 	reply := replyManager.Create(db, user, comment.ID, replyData.Text)
+	// Create reply
+	reply := replyManager.Create(db, *user, *comment, data.Text)
 
-// 	// Created & Send Notification
-// 	if user.ID != comment.AuthorID {
-// 		notification := notificationManager.Create(db, user, "REPLY", []uuid.UUID{comment.AuthorID}, nil, nil, reply, nil)
-// 		SendNotificationInSocket(c, notification, nil, nil)
-// 	}
+	// Created & Send Notification
+	// if user.ID.String() != comment.AuthorID.String() {
+	// 	notification := notificationManager.Create(db, user, choices.NREPLY, []models.User{comment.AuthorObj}, nil, nil, &reply, nil)
+	// 	SendNotificationInSocket(c, notification, nil, nil)
+	// }
 
-// 	// Convert type and return reply
-// 	convertedReply := utils.ConvertStructData(reply, schemas.ReplySchema{}).(*schemas.ReplySchema)
-// 	response := schemas.ReplyResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Reply created"}.Init(),
-// 		Data:           convertedReply.Init(),
-// 	}
-// 	return c.Status(201).JSON(response)
-// }
+	// Convert type and return reply
+	response := schemas.ReplyResponseSchema{
+		ResponseSchema: SuccessResponse("Reply created"),
+		Data:           reply.Init(),
+	}
+	return c.Status(201).JSON(response)
+}
 
-// // @Summary Update Comment
-// // @Description This endpoint updates a comment
-// // @Tags Feed
-// // @Param slug path string true "Comment Slug"
-// // @Param comment body schemas.CommentInputSchema true "Comment object"
-// // @Success 200 {object} schemas.CommentResponseSchema
-// // @Router /feed/comments/{slug} [put]
-// // @Security BearerAuth
-// func (endpoint Endpoint) UpdateComment(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Update Comment
+// @Description This endpoint updates a comment
+// @Tags Feed
+// @Param slug path string true "Comment Slug"
+// @Param comment body schemas.CommentInputSchema true "Comment object"
+// @Success 200 {object} schemas.CommentResponseSchema
+// @Router /feed/comments/{slug} [put]
+// @Security BearerAuth
+func (endpoint Endpoint) UpdateComment(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Get Comment
-// 	comment, errCode, errData := commentManager.GetBySlug(db, slug, true)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
-// 	if comment.AuthorID != user.ID {
-// 		return c.Status(401).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to edit"))
-// 	}
+	// Get Comment
+	comment, errCode, errData := commentManager.GetBySlug(db, slug, true)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
+	if comment.AuthorID.String() != user.ID.String() {
+		return c.Status(401).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to edit"))
+	}
 
-// 	commentData := schemas.CommentInputSchema{}
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &commentData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(commentData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	data := schemas.CommentInputSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Update Comment
-// 	comment = commentManager.Update(comment, user, commentData.Text)
+	// Update Comment
+	updatedComment := commentManager.Update(db, *comment, user, data.Text)
 
-// 	// Convert type and return comment
-// 	convertedComment := utils.ConvertStructData(comment, schemas.CommentSchema{}).(*schemas.CommentSchema)
-// 	response := schemas.CommentResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Comment updated"}.Init(),
-// 		Data:           convertedComment.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Convert type and return comment
+	response := schemas.CommentResponseSchema{
+		ResponseSchema: SuccessResponse("Comment updated"),
+		Data:           updatedComment.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Delete Comment
-// // @Description This endpoint deletes a comment
-// // @Tags Feed
-// // @Param slug path string true "Comment Slug"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /feed/comments/{slug} [delete]
-// // @Security BearerAuth
-// func (endpoint Endpoint) DeleteComment(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Delete Comment
+// @Description This endpoint deletes a comment
+// @Tags Feed
+// @Param slug path string true "Comment Slug"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /feed/comments/{slug} [delete]
+// @Security BearerAuth
+func (endpoint Endpoint) DeleteComment(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Retrieve & Validate Comment Existence & Ownership
-// 	comment, errCode, errData := commentManager.GetBySlug(db, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
-// 	if comment.AuthorID != user.ID {
-// 		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to delete"))
-// 	}
+	// Retrieve & Validate Comment Existence & Ownership
+	comment, errCode, errData := commentManager.GetBySlug(db, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
+	if comment.AuthorID.String() != user.ID.String() {
+		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to delete"))
+	}
 
-// 	// Remove Comment Notifications
-// 	notification := notificationManager.Get(
-// 		db, user, "COMMENT",
-// 		nil, comment, nil,
-// 	)
-// 	if notification != nil {
-// 		// Send to websocket and delete notification & comment
-// 		SendNotificationInSocket(c, notification, &comment.Slug, nil, "DELETED")
-// 	}
+	// Remove Comment Notifications
+	// notification := notificationManager.Get(
+	// 	db, user, "COMMENT",
+	// 	nil, comment, nil,
+	// )
+	// if notification != nil {
+	// 	// Send to websocket and delete notification & comment
+	// 	SendNotificationInSocket(c, notification, &comment.Slug, nil, "DELETED")
+	// }
 
-// 	// Delete and return response
-// 	response := schemas.ResponseSchema{Message: "Comment Deleted"}.Init()
-// 	return c.Status(200).JSON(response)
-// }
+	// Delete and return response
+	db.Delete(&comment)
+	return c.Status(200).JSON(SuccessResponse("Comment Deleted"))
+}
 
-// // @Summary Retrieve Reply
-// // @Description This endpoint retrieves a reply
-// // @Tags Feed
-// // @Param slug path string true "Reply Slug"
-// // @Success 200 {object} schemas.ReplyResponseSchema
-// // @Router /feed/replies/{slug} [get]
-// func (endpoint Endpoint) RetrieveReply(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
+// @Summary Retrieve Reply
+// @Description This endpoint retrieves a reply
+// @Tags Feed
+// @Param slug path string true "Reply Slug"
+// @Success 200 {object} schemas.ReplyResponseSchema
+// @Router /feed/replies/{slug} [get]
+func (endpoint Endpoint) RetrieveReply(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
 
-// 	// Get Reply
-// 	reply, errCode, errData := replyManager.GetBySlug(db, slug, true)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
+	// Get Reply
+	reply, errCode, errData := replyManager.GetBySlug(db, slug, true)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Convert type and return reply
-// 	convertedReply := utils.ConvertStructData(reply, schemas.ReplySchema{}).(*schemas.ReplySchema)
-// 	response := schemas.ReplyResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Reply Fetched"}.Init(),
-// 		Data:           convertedReply.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Convert type and return reply
+	response := schemas.ReplyResponseSchema{
+		ResponseSchema: SuccessResponse("Reply Fetched"),
+		Data:           reply.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Update Reply
-// // @Description This endpoint updates a reply
-// // @Tags Feed
-// // @Param slug path string true "Reply Slug"
-// // @Param reply body schemas.CommentInputSchema true "Reply object"
-// // @Success 200 {object} schemas.ReplyResponseSchema
-// // @Router /feed/replies/{slug} [put]
-// // @Security BearerAuth
-// func (endpoint Endpoint) UpdateReply(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Update Reply
+// @Description This endpoint updates a reply
+// @Tags Feed
+// @Param slug path string true "Reply Slug"
+// @Param reply body schemas.CommentInputSchema true "Reply object"
+// @Success 200 {object} schemas.ReplyResponseSchema
+// @Router /feed/replies/{slug} [put]
+// @Security BearerAuth
+func (endpoint Endpoint) UpdateReply(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Get Reply
-// 	reply, errCode, errData := replyManager.GetBySlug(db, slug, true)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
-// 	if reply.AuthorID != user.ID {
-// 		return c.Status(401).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to edit"))
-// 	}
+	// Get Reply
+	reply, errCode, errData := replyManager.GetBySlug(db, slug, true)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
+	if reply.AuthorID.String() != user.ID.String() {
+		return c.Status(401).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to edit"))
+	}
 
-// 	replyData := schemas.CommentInputSchema{}
-// 	// Validate request
-// 	if errCode, errData := DecodeJSONBody(c, &replyData); errData != nil {
-// 		return c.Status(errCode).JSON(errData)
-// 	}
-// 	if err := validator.Validate(replyData); err != nil {
-// 		return c.Status(422).JSON(err)
-// 	}
+	data := schemas.CommentInputSchema{}
+	// Validate request
+	if errCode, errData := ValidateRequest(c, &data); errData != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
 
-// 	// Update Reply
-// 	reply = replyManager.Update(reply, user, replyData.Text)
+	// Update Reply
+	updatedReply := replyManager.Update(db, *reply, user, data.Text)
 
-// 	// Convert type and return reply
-// 	convertedReply := utils.ConvertStructData(reply, schemas.ReplySchema{}).(*schemas.ReplySchema)
-// 	response := schemas.ReplyResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Reply updated"}.Init(),
-// 		Data:           convertedReply.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Convert type and return reply
+	response := schemas.ReplyResponseSchema{
+		ResponseSchema: SuccessResponse("Reply updated"),
+		Data:           updatedReply.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
-// // @Summary Delete Reply
-// // @Description This endpoint deletes a reply
-// // @Tags Feed
-// // @Param slug path string true "Reply Slug"
-// // @Success 200 {object} schemas.ResponseSchema
-// // @Router /feed/replies/{slug} [delete]
-// // @Security BearerAuth
-// func (endpoint Endpoint) DeleteReply(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	slug := c.Params("slug")
-// 	user := RequestUser(c)
+// @Summary Delete Reply
+// @Description This endpoint deletes a reply
+// @Tags Feed
+// @Param slug path string true "Reply Slug"
+// @Success 200 {object} schemas.ResponseSchema
+// @Router /feed/replies/{slug} [delete]
+// @Security BearerAuth
+func (endpoint Endpoint) DeleteReply(c *fiber.Ctx) error {
+	db := endpoint.DB
+	slug := c.Params("slug")
+	user := RequestUser(c)
 
-// 	// Retrieve & Validate Reply Existence & Ownership
-// 	reply, errCode, errData := replyManager.GetBySlug(db, slug)
-// 	if errCode != nil {
-// 		return c.Status(*errCode).JSON(errData)
-// 	}
-// 	if reply.AuthorID != user.ID {
-// 		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to delete"))
-// 	}
+	// Retrieve & Validate Reply Existence & Ownership
+	reply, errCode, errData := replyManager.GetBySlug(db, slug)
+	if errCode != nil {
+		return c.Status(*errCode).JSON(errData)
+	}
+	if reply.AuthorID.String() != user.ID.String() {
+		return c.Status(400).JSON(utils.RequestErr(utils.ERR_INVALID_OWNER, "Not yours to delete"))
+	}
 
-// 	// Remove Reply Notifications
-// 	notification := notificationManager.Get(
-// 		db, user, "REPLY",
-// 		nil, nil, reply,
-// 	)
-// 	if notification != nil {
-// 		// Send to websocket and delete notification
-// 		SendNotificationInSocket(c, notification, nil, &reply.Slug, "DELETED")
-// 	}
+	// Remove Reply Notifications
+	// notification := notificationManager.Get(
+	// 	db, user, "REPLY",
+	// 	nil, nil, reply,
+	// )
+	// if notification != nil {
+	// 	// Send to websocket and delete notification
+	// 	SendNotificationInSocket(c, notification, nil, &reply.Slug, "DELETED")
+	// }
 
-// 	// Delete and return response
-// 	response := schemas.ResponseSchema{Message: "Reply Deleted"}.Init()
-// 	return c.Status(200).JSON(response)
-// }
+	// Delete and return response
+	db.Delete(&reply)
+	return c.Status(200).JSON(SuccessResponse("Reply Deleted"))
+}

@@ -295,6 +295,40 @@ definitions:
         example: success
         type: string
     type: object
+  schemas.CommentWithRepliesResponseDataSchema:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/models.Reply'
+        type: array
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+    type: object
+  schemas.CommentWithRepliesResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.CommentWithRepliesSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.CommentWithRepliesSchema:
+    properties:
+      comment:
+        $ref: '#/definitions/models.Comment'
+      replies:
+        $ref: '#/definitions/schemas.CommentWithRepliesResponseDataSchema'
+    type: object
   schemas.CommentsResponseDataSchema:
     properties:
       comments:
@@ -603,6 +637,17 @@ definitions:
     - first_name
     - last_name
     - password
+    type: object
+  schemas.ReplyResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Reply'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
     type: object
   schemas.ResponseSchema:
     properties:
@@ -914,6 +959,94 @@ paths:
       summary: Verify a user's email
       tags:
       - Auth
+  /feed/comments/{slug}:
+    delete:
+      description: This endpoint deletes a comment
+      parameters:
+      - description: Comment Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Delete Comment
+      tags:
+      - Feed
+    get:
+      description: This endpoint retrieves a comment with replies
+      parameters:
+      - description: Comment Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.CommentWithRepliesResponseSchema'
+      summary: Retrieve Comment with replies
+      tags:
+      - Feed
+    post:
+      description: This endpoint creates a reply for a comment
+      parameters:
+      - description: Comment Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Reply object
+        in: body
+        name: reply
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CommentInputSchema'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schemas.ReplyResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Create Reply
+      tags:
+      - Feed
+    put:
+      description: This endpoint updates a comment
+      parameters:
+      - description: Comment Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Comment object
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CommentInputSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.CommentResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Update Comment
+      tags:
+      - Feed
   /feed/posts:
     get:
       description: This endpoint retrieves paginated responses of latest posts
@@ -1135,6 +1268,65 @@ paths:
       security:
       - BearerAuth: []
       summary: Remove Reaction
+      tags:
+      - Feed
+  /feed/replies/{slug}:
+    delete:
+      description: This endpoint deletes a reply
+      parameters:
+      - description: Reply Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Delete Reply
+      tags:
+      - Feed
+    get:
+      description: This endpoint retrieves a reply
+      parameters:
+      - description: Reply Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ReplyResponseSchema'
+      summary: Retrieve Reply
+      tags:
+      - Feed
+    put:
+      description: This endpoint updates a reply
+      parameters:
+      - description: Reply Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Reply object
+        in: body
+        name: reply
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.CommentInputSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ReplyResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Update Reply
       tags:
       - Feed
   /general/site-detail:
