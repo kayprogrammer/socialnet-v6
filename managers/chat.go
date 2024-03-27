@@ -1,14 +1,11 @@
 package managers
 
 import (
-	"github.com/google/uuid"
-	"github.com/kayprogrammer/socialnet-v4/ent"
-	"github.com/kayprogrammer/socialnet-v4/ent/chat"
-	"github.com/kayprogrammer/socialnet-v4/ent/message"
-	"github.com/kayprogrammer/socialnet-v4/ent/user"
-	"github.com/kayprogrammer/socialnet-v4/schemas"
-	"github.com/kayprogrammer/socialnet-v4/utils"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
+	"github.com/kayprogrammer/socialnet-v6/schemas"
+	"github.com/kayprogrammer/socialnet-v6/utils"
+	"github.com/pborman/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,96 +17,58 @@ type ChatManager struct {
 
 func (obj ChatManager) GetUserChats(db *gorm.DB, userObj models.User) []models.Chat {
 	chats := []models.Chat{}
-	db.Where(models.Chat{OwnerID: userObj.ID}).Or(models.Chat{})
-	chats := client.Chat.Query().
-		Where(
-			chat.Or(
-				chat.OwnerIDEQ(userObj.ID),
-				chat.HasUsersWith(user.ID(userObj.ID)),
-			),
-		).
-		WithOwner(func(uq models.UserQuery) { uq.WithAvatar() }).
-		WithImage().
-		WithMessages(
-			func(mq models.MessageQuery) {
-				mq.WithSender(func(uq models.UserQuery) { uq.WithAvatar() }).WithFile().Order(ent.Desc(message.FieldCreatedAt))
-			}).
-		Order(ent.Desc(chat.FieldUpdatedAt)).
-		AllX(Ctx)
+	db.Where(models.Chat{OwnerID: userObj.ID}).Or(models.Chat{UserObjs: []models.User{userObj}}).Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj").Joins("Messages")
 	return chats
 }
 
 func (obj ChatManager) GetByID(db *gorm.DB, id uuid.UUID) models.Chat {
-	chatObj, _ := client.Chat.Query().
-		Where(
-			chat.IDEQ(id),
-		).
-		WithUsers().
-		Only(Ctx)
-	return chatObj
+	chat := models.Chat{}
+	db.Joins("Users").Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	return chat
 }
 
 func (obj ChatManager) UserIsMember(chat models.Chat, targetUser models.User) bool {
-	for _, user := range chat.Edges.Users {
-        if user.ID == targetUser.ID {
-            return true
-        }
-    }
-    return false
-}
-
-func (obj ChatManager) GetDMChat(db *gorm.DB, userObj models.User, recipientUser models.User) models.Chat {
-	chatObj, _ := client.Chat.Query().
-		Where(
-			chat.CtypeEQ("DM"),
-			chat.Or(
-				chat.And(
-					chat.OwnerIDEQ(userObj.ID),
-					chat.HasUsersWith(user.ID(recipientUser.ID)),
-				),
-				chat.And(
-					chat.OwnerIDEQ(recipientUser.ID),
-					chat.HasUsersWith(user.ID(userObj.ID)),
-				),
-			),
-		).
-		Only(Ctx)
-	return chatObj
-}
-
-func (obj ChatManager) Create(db *gorm.DB, owner models.User, ctype chat.Ctype, recipientsOpts ...[]models.User) models.Chat {
-	chatObjCreationQuery := client.Chat.Create().
-		SetCtype(ctype).
-		SetOwner(owner)
-
-	if len(recipientsOpts) > 0 {
-		chatObjCreationQuery = chatObjCreationQuery.AddUsers(recipientsOpts[0]...)
+	for _, user := range chat.UserObjs {
+		if user.ID.String() == targetUser.ID.String() {
+			return true
+		}
 	}
-	chatObj := chatObjCreationQuery.SaveX(Ctx)
-	chatObj.Edges.Owner = owner
-	return chatObj
+	return false
+}
+
+func (obj ChatManager) GetDMChat(db *gorm.DB, user models.User, recipientUser models.User) models.Chat {
+	chat := models.Chat{Ctype: choices.CDM}
+	db.Where(models.Chat{OwnerID: user.ID, UserObjs: []models.User{recipientUser}}).Or(models.Chat{OwnerID: recipientUser.ID, UserObjs: []models.User{user}}).Take(&chat, chat)
+	return chat
+}
+
+func (obj ChatManager) Create(db *gorm.DB, owner models.User, ctype choices.ChatTypeChoice, recipientsOpts ...[]models.User) models.Chat {
+	chat := models.Chat{Ctype: ctype, OwnerID: owner.ID, OwnerObj: owner}
+	if len(recipientsOpts) > 0 {
+		chat.UserObjs = recipientsOpts[0]
+	}
+	db.Omit("ImageObj", "OwnerObj").Create(&chat)
+	return chat
 }
 
 func (obj ChatManager) CreateGroup(db *gorm.DB, owner models.User, usersToAdd []models.User, data schemas.GroupChatCreateSchema) models.Chat {
-	var imageId *uuid.UUID
-	var image *ent.File
-	if data.FileType != nil {
-		image = FileManager{}.Create(client, *data.FileType)
-		imageId = &image.ID
+	chat := models.Chat{
+		OwnerID: owner.ID, 
+		OwnerObj: owner, 
+		Name: data.Name,
+		Description: data.Description,
+		Ctype: choices.CGROUP,
+		UserObjs: usersToAdd,
 	}
 
-	chat := client.Chat.Create().
-		SetOwner(owner).
-		SetName(data.Name).
-		SetNillableDescription(data.Description).
-		SetCtype("GROUP").
-		SetNillableImageID(imageId).
-		AddUsers(usersToAdd...).
-		SaveX(Ctx)
-
-	// Set related data
-	chat.Edges.Users = usersToAdd
-	chat.Edges.Image = image
+	fileType := data.FileType
+	image := models.File{ResourceType: fileType}
+	if fileType != nil {
+		db.Create(&image)
+		chat.ImageID = &image.ID
+		chat.ImageObj = &image
+	}
+	db.Omit("ImageObj", "OwnerObj").Create(&chat)
 	return chat
 }
 

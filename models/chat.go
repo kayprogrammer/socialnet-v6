@@ -17,7 +17,8 @@ type Chat struct {
 	ImageID     *uuid.UUID             `json:"-"`
 	ImageObj    *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
 	Image       *string                `gorm:"-" json:"image"`
-	Messages	[]Message              `gorm:"-"`
+	UserObjs    []User                 `gorm:"many2many:chat_users;"`
+	Messages    []Message              `gorm:"-"`
 }
 
 func (c Chat) GetImageUrl() *string {
