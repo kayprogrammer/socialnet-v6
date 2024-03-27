@@ -26,3 +26,10 @@ const (
 	FPENDING  FriendStatusChoice = "PENDING"
 	FACCEPTED FriendStatusChoice = "ACCEPTED"
 )
+
+type ChatTypeChoice string
+
+const (
+	CDM  ChatTypeChoice = "DM"
+	CGROUP ChatTypeChoice = "GROUP"
+)
