@@ -7,6 +7,7 @@ import (
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ----------------------------------
@@ -53,17 +54,18 @@ func (obj ChatManager) Create(db *gorm.DB, owner models.User, ctype choices.Chat
 
 func (obj ChatManager) CreateGroup(db *gorm.DB, owner models.User, usersToAdd []models.User, data schemas.GroupChatCreateSchema) models.Chat {
 	chat := models.Chat{
-		OwnerID: owner.ID, 
-		OwnerObj: owner, 
-		Name: data.Name,
+		OwnerID:     owner.ID,
+		OwnerObj:    owner,
+		Name:        &data.Name,
 		Description: data.Description,
-		Ctype: choices.CGROUP,
-		UserObjs: usersToAdd,
+		Ctype:       choices.CGROUP,
+		UserObjs:    usersToAdd,
 	}
 
 	fileType := data.FileType
-	image := models.File{ResourceType: fileType}
 	if fileType != nil {
+		var fileType string = *data.FileType
+		image := models.File{ResourceType: fileType}
 		db.Create(&image)
 		chat.ImageID = &image.ID
 		chat.ImageObj = &image
@@ -72,24 +74,20 @@ func (obj ChatManager) CreateGroup(db *gorm.DB, owner models.User, usersToAdd []
 	return chat
 }
 
-func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chatObj models.Chat, chatUpdateQuery models.ChatUpdateOne, usernamesToAdd *[]string, usernamesToRemove *[]string) (models.ChatUpdateOne, *utils.ErrorResponse) {
+func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *models.Chat, usernamesToAdd *[]string, usernamesToRemove *[]string) (*models.Chat, *utils.ErrorResponse) {
 	originalExistingUserIDs := []uuid.UUID{}
-	for _, user := range chatObj.Edges.Users {
+	for _, user := range chat.UserObjs {
 		originalExistingUserIDs = append(originalExistingUserIDs, user.ID)
 	}
 	expectedUserTotal := len(originalExistingUserIDs)
 	usersToAdd := []models.User{}
 	if usernamesToAdd != nil {
-		usersToAdd = client.User.Query().
-			Where(
-				user.UsernameIn(*usernamesToAdd...),
-				user.Or(
-					user.Not(user.IDIn(originalExistingUserIDs...)),
-					user.IDNEQ(chatObj.OwnerID),
-				),
-			).AllX(Ctx)
+		db.Where("username IN ?", usernamesToAdd).Where(
+			db.Not("id IN ?", originalExistingUserIDs).Or(models.User{BaseModel: models.BaseModel{ID: chat.OwnerID}}),
+		).Find(&usersToAdd)
 		expectedUserTotal += len(usersToAdd)
-		chatUpdateQuery = chatUpdateQuery.AddUsers(usersToAdd...)
+
+		// chatUpdateQuery = chatUpdateQuery.AddUsers(usersToAdd...)
 	}
 	usersToRemove := []models.User{}
 	if usernamesToRemove != nil {
@@ -100,14 +98,9 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chatObj m
 			errData := utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data)
 			return nil, &errData
 		}
-		usersToRemove = client.User.Query().
-			Where(
-				user.UsernameIn(*usernamesToRemove...),
-				user.IDIn(originalExistingUserIDs...),
-				user.IDNEQ(chatObj.OwnerID),
-			).AllX(Ctx)
+		db.Where("username IN ?", usernamesToRemove).Not(models.User{BaseModel: models.BaseModel{ID: chat.OwnerID}}).Find(&usernamesToRemove, originalExistingUserIDs)
 		expectedUserTotal -= len(usersToRemove)
-		chatUpdateQuery = chatUpdateQuery.RemoveUsers(usersToRemove...)
+		// chatUpdateQuery = chatUpdateQuery.RemoveUsers(usersToRemove...)
 	}
 	if expectedUserTotal > 99 {
 		data := map[string]string{
@@ -116,185 +109,114 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chatObj m
 		errData := utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data)
 		return nil, &errData
 	}
-	return chatUpdateQuery, nil
+	return chat, nil
 }
 
-func (obj ChatManager) UpdateGroup(db *gorm.DB, chatObj models.Chat, data schemas.GroupChatInputSchema) (models.Chat, *utils.ErrorResponse) {
-	chatUpdateQuery := chatObj.Update().
-		SetNillableName(data.Name).
-		SetNillableDescription(data.Description)
+func (obj ChatManager) UpdateGroup(db *gorm.DB, chat *models.Chat, data schemas.GroupChatInputSchema) (*models.Chat, *utils.ErrorResponse) {
+	if data.Name != nil {
+		chat.Name = data.Name
+	}
+	if data.Description != nil {
+		chat.Description = data.Description
+	}
 
 	// Handle users upload or remove
 	var errData *utils.ErrorResponse
-	chatUpdateQuery, errData = obj.UsernamesToAddAndRemoveValidations(client, chatObj, chatUpdateQuery, data.UsernamesToAdd, data.UsernamesToRemove)
+	chat, errData = obj.UsernamesToAddAndRemoveValidations(db, chat, data.UsernamesToAdd, data.UsernamesToRemove)
 	if errData != nil {
 		return nil, errData
 	}
 	// Handle file upload
-	var imageId *uuid.UUID
-	image := chatObj.Edges.Image
 	if data.FileType != nil {
 		// Create or Update Image Object
-		image = FileManager{}.UpdateOrCreate(client, image, *data.FileType)
-		imageId = &image.ID
+		image := models.File{ResourceType: *data.FileType}.UpdateOrCreate(db, chat.ImageID)
+		chat.ImageID = &image.ID
+		chat.ImageObj = &image
 	}
-	chatUpdateQuery = chatUpdateQuery.SetNillableImageID(imageId)
-	updatedChat := chatUpdateQuery.SaveX(Ctx)
-
-	// Set related data
-	updatedChat.Edges.Users = chatObj.QueryUsers().WithAvatar().AllX(Ctx)
-	updatedChat.Edges.Image = image
-
-	return updatedChat, errData
+	db.Save(&chat)
+	return chat, errData
 }
 
-func (obj ChatManager) GetSingleUserChat(db *gorm.DB, userObj models.User, id uuid.UUID) models.Chat {
-	chat, _ := client.Chat.Query().
-		Where(
-			chat.IDEQ(id),
-			chat.Or(
-				chat.OwnerIDEQ(userObj.ID),
-				chat.HasUsersWith(user.ID(userObj.ID)),
-			),
-		).
-		Only(Ctx)
+func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
+	chat := models.Chat{}
+	db.Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
 	return chat
 }
 
-func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, userObj models.User, id uuid.UUID) models.Chat {
-	chat, _ := client.Chat.Query().
-		Where(
-			chat.IDEQ(id),
-			chat.Or(
-				chat.OwnerIDEQ(userObj.ID),
-				chat.HasUsersWith(user.ID(userObj.ID)),
-			),
-		).
-		WithOwner(func(uq models.UserQuery) { uq.WithAvatar() }).
-		WithImage().
-		WithMessages(
-			func(mq models.MessageQuery) {
-				mq.WithSender(func(uq models.UserQuery) { uq.WithAvatar() }).WithFile().Order(ent.Desc(message.FieldCreatedAt))
-			},
-		).
-		WithUsers(func(uq models.UserQuery) { uq.WithAvatar() }).
-		Only(Ctx)
+func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
+	chat := models.Chat{}
+	db.Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj").Joins("Users").Preload("Messages").Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
 	return chat
 }
 
-func (obj ChatManager) GetUserGroup(db *gorm.DB, userObj models.User, id uuid.UUID, detailedOpts ...bool) models.Chat {
-	chatQ := client.Chat.Query().
-		Where(
-			chat.CtypeEQ("GROUP"),
-			chat.IDEQ(id),
-			chat.OwnerIDEQ(userObj.ID),
-		)
+func (obj ChatManager) GetUserGroup(db *gorm.DB, user models.User, id uuid.UUID, detailedOpts ...bool) models.Chat {
+	chat := models.Chat{Ctype: choices.CGROUP, OwnerID: user.ID}
+	q := db
 	if len(detailedOpts) > 0 {
-		// Extra details
-		chatQ = chatQ.
-			WithOwner(func(uq models.UserQuery) { uq.WithAvatar() }).
-			WithImage().
-			WithUsers(func(uq models.UserQuery) { uq.WithAvatar() })
+		q = q.Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj").Joins("Users")
 	}
-	chatObj, _ := chatQ.Only(Ctx)
-	return chatObj
+	q.Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	return chat
 }
 
-func (obj ChatManager) GetMessagesCount(db *gorm.DB, chatID uuid.UUID) int {
-	messagesCount := client.Message.Query().
-		Where(
-			message.ChatIDEQ(chatID),
-		).CountX(Ctx)
-
+func (obj ChatManager) GetMessagesCount(db *gorm.DB, chatID uuid.UUID) int64 {
+	var messagesCount int64
+	db.Model(&models.Message{ChatID: chatID}).Count(&messagesCount)
 	return messagesCount
 }
 
-func (obj ChatManager) DropData(db *gorm.DB) {
-	client.Chat.Delete().ExecX(Ctx)
-}
+// func (obj ChatManager) DropData(db *gorm.DB) {
+// 	client.Chat.Delete().ExecX(Ctx)
+// }
 
 // ----------------------------------
 // MESSAGE MANAGEMENT
 // --------------------------------
+
+func MessageSenderScope(db *gorm.DB) *gorm.DB {
+	return db.Joins("SenderObj").Joins("SenderObj.AvatarObj").Joins("ChatObj").Joins("FileObj")
+}
 type MessageManager struct {
 }
 
 func (obj MessageManager) Create(db *gorm.DB, sender models.User, chat models.Chat, text *string, fileType *string) models.Message {
-	var fileID *uuid.UUID
-	var file *ent.File
+	message := models.Message{SenderID: sender.ID, SenderObj: sender, ChatID: chat.ID, ChatObj: chat, Text: text}
 	if fileType != nil {
-		file = FileManager{}.Create(client, *fileType)
-		fileID = &file.ID
+		file := models.File{ResourceType: *fileType}
+		db.Create(&file)
+		message.FileID = &file.ID
+		message.FileObj = &file
 	}
-
-	messageObj := client.Message.Create().
-		SetChat(chat).
-		SetSender(sender).
-		SetNillableText(text).
-		SetNillableFileID(fileID).
-		SaveX(Ctx)
-
-	// Set related values
-	messageObj.Edges.Sender = sender
-	if fileID != nil {
-		messageObj.Edges.File = file
-	}
-
-	// Update Chat to intentionally update the updatedAt
-	updatedChat := chat.Update().SaveX(Ctx)
-	updatedChat.Edges.Owner = chat.Edges.Owner
-	updatedChat.Edges.Image = chat.Edges.Image
-	updatedChat.Edges.Users = chat.Edges.Users
-	messageObj.Edges.Chat = updatedChat
-	return messageObj
+	db.Omit(clause.Associations).Create(&message)
+	return message
 }
 
-func (obj MessageManager) GetUserMessage(db *gorm.DB, userObj models.User, id uuid.UUID) models.Message {
-	messageObj, _ := client.Message.Query().
-		Where(
-			message.IDEQ(id),
-			message.SenderIDEQ(userObj.ID),
-		).
-		WithSender(func(uq models.UserQuery) { uq.WithAvatar() }).
-		WithChat().
-		WithFile().
-		Only(Ctx)
-	return messageObj
+func (obj MessageManager) GetUserMessage(db *gorm.DB, user models.User, id uuid.UUID) models.Message {
+	message := models.Message{SenderID: user.ID}
+	db.Scopes(MessageSenderScope).Take(&message, models.Message{BaseModel: models.BaseModel{ID: id}})
+	return message
 }
 
 func (obj MessageManager) Update(db *gorm.DB, message models.Message, text *string, fileType *string) models.Message {
-	var fileId *uuid.UUID
-	file := message.Edges.File
 	if fileType != nil {
 		// Create or Update Image Object
-		file = FileManager{}.UpdateOrCreate(client, file, *fileType)
-		fileId = &file.ID
+		file := models.File{ResourceType: *fileType}.UpdateOrCreate(db, message.FileID)
+		message.FileID = &file.ID
+		message.FileObj = &file
 	}
-
-	messageObj := message.Update().
-		SetNillableText(text).
-		SetNillableFileID(fileId).
-		SaveX(Ctx)
-
-	// Set related values
-	messageObj.Edges.Sender = message.Edges.Sender
-	if fileId != nil {
-		messageObj.Edges.File = file
+	if text != nil {
+		message.Text = text
 	}
-	return messageObj
+	db.Omit(clause.Associations).Save(&message)
+	return message
 }
 
 func (obj MessageManager) GetByID(db *gorm.DB, id uuid.UUID) models.Message {
-	messageObj, _ := client.Message.Query().
-		Where(
-			message.IDEQ(id),
-		).
-		WithSender(func(uq models.UserQuery) { uq.WithAvatar() }).
-		WithFile().
-		Only(Ctx)
-	return messageObj
+	message := models.Message{}
+	db.Scopes(MessageSenderScope).Take(&message, models.Message{BaseModel: models.BaseModel{ID: id}})
+	return message
 }
 
-func (obj MessageManager) DropData(db *gorm.DB) {
-	client.Message.Delete().ExecX(Ctx)
-}
+// func (obj MessageManager) DropData(db *gorm.DB) {
+// 	client.Message.Delete().ExecX(Ctx)
+// }

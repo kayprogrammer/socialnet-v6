@@ -30,7 +30,7 @@ type Post struct {
 
 func (p Post) Init() Post {
 	p.ID = nil // Omit ID
-	p.Author = UserDataSchema{}.Init(p.AuthorObj)
+	p.Author = p.Author.Init(p.AuthorObj)
 	p.Image = p.GetImageUrl()
 	p.CommentsCount = len(p.Comments)
 	p.ReactionsCount = len(p.Reactions)
@@ -67,7 +67,7 @@ type Comment struct {
 
 func (c Comment) Init() Comment {
 	c.ID = nil // Omit ID
-	c.Author = UserDataSchema{}.Init(c.AuthorObj)
+	c.Author = c.Author.Init(c.AuthorObj)
 	c.RepliesCount = len(c.Replies)
 	c.ReactionsCount = len(c.Reactions)
 	return c
@@ -81,7 +81,7 @@ type Reply struct {
 
 func (r Reply) Init() Reply {
 	r.ID = nil // Omit ID
-	r.Author = UserDataSchema{}.Init(r.AuthorObj)
+	r.Author = r.Author.Init(r.AuthorObj)
 	r.ReactionsCount = len(r.Reactions)
 	return r
 }
@@ -100,7 +100,7 @@ type Reaction struct {
 }
 
 func (r *Reaction) Init() {
-	r.User = UserDataSchema{}.Init(r.UserObj)
+	r.User = r.User.Init(r.UserObj)
 }
 
 func (r *Reaction) AfterFind(tx *gorm.DB) (err error) {
