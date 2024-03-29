@@ -42,7 +42,7 @@ func (obj PostManager) Create(db *gorm.DB, author models.User, postData schemas.
 		file := models.File{ResourceType: *postData.FileType}
 		post.ImageObj = &file
 	}
-	db.Omit("AuthorObj").Create(&post)
+	db.Create(&post)
 	return post
 }
 
@@ -111,7 +111,7 @@ func (obj CommentManager) Create(db *gorm.DB, author models.User, post models.Po
 	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, AuthorObj: author, Text: text}
 
 	comment := models.Comment{FeedAbstract: sub_base, PostID: post.ID, PostObj: post}
-	db.Omit("AuthorObj", "PostObj").Create(&comment)
+	db.Create(&comment)
 	return comment
 }
 
@@ -154,13 +154,13 @@ func (obj ReplyManager) Create(db *gorm.DB, author models.User, comment models.C
 	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, AuthorObj: author, Text: text}
 
 	reply := models.Reply{FeedAbstract: sub_base, CommentID: comment.ID}
-	db.Omit("AuthorObj").Create(&reply)
+	db.Create(&reply)
 	return reply
 }
 
 func (obj ReplyManager) Update(db *gorm.DB, reply models.Reply, author *models.User, text string) models.Reply {
 	reply.Text = text
-	db.Omit(clause.Associations).Save(&reply)
+	db.Save(&reply)
 	return reply
 }
 
@@ -222,7 +222,7 @@ func (obj ReactionManager) Update(db *gorm.DB, reaction models.Reaction, focus s
 	} else {
 		reaction.ReplyID = &id
 	}
-	db.Omit("UserObj").Save(&reaction)
+	db.Save(&reaction)
 	return reaction
 }
 
@@ -235,7 +235,7 @@ func (obj ReactionManager) Create(db *gorm.DB, user models.User, focus string, f
 	} else {
 		reaction.ReplyID = &focusID
 	}
-	db.Omit("UserObj").Create(&reaction)
+	db.Create(&reaction)
 	return reaction
 }
 

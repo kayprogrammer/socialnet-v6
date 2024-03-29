@@ -315,6 +315,68 @@
                 }
             }
         },
+        "/chats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "`This endpoint retrieves a paginated list of the current user chats`",
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Retrieve User Chats",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ChatsResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "`This endpoint sends a message`\n\n`You must either send a text or a file or both.`\n\n`If there's no chat_id, then its a new chat and you must set username and leave chat_id`\n\n`If chat_id is available, then ignore username and set the correct chat_id`\n\n`The file_upload_data in the response is what is used for uploading the file to cloudinary from client`",
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Send a message",
+                "parameters": [
+                    {
+                        "description": "Message object",
+                        "name": "message",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schemas.MessageCreateSchema"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.MessageCreateResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/feed/comments/{slug}": {
             "get": {
                 "description": "This endpoint retrieves a comment with replies",
@@ -1257,6 +1319,17 @@
         }
     },
     "definitions": {
+        "choices.ChatTypeChoice": {
+            "type": "string",
+            "enum": [
+                "DM",
+                "GROUP"
+            ],
+            "x-enum-varnames": [
+                "CDM",
+                "CGROUP"
+            ]
+        },
         "choices.NotificationChoice": {
             "type": "string",
             "enum": [
@@ -1290,6 +1363,63 @@
                 "RSAD",
                 "RANGRY"
             ]
+        },
+        "models.Chat": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "ctype": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/choices.ChatTypeChoice"
+                        }
+                    ],
+                    "example": "DM"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "A nice group for tech enthusiasts"
+                },
+                "file_upload_data": {
+                    "$ref": "#/definitions/utils.SignatureFormat"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "image": {
+                    "type": "string",
+                    "example": "https://img.url"
+                },
+                "latest_message": {
+                    "$ref": "#/definitions/models.LatestMessageSchema"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Message"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Group"
+                },
+                "owner": {
+                    "$ref": "#/definitions/models.UserDataSchema"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "users": {
+                    "description": "omitempty later to show for groups",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserDataSchema"
+                    }
+                }
+            }
         },
         "models.City": {
             "type": "object",
@@ -1343,6 +1473,52 @@
                 },
                 "text": {
                     "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LatestMessageSchema": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "string"
+                },
+                "sender": {
+                    "$ref": "#/definitions/models.UserDataSchema"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Message": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "file": {
+                    "type": "string",
+                    "example": "https://img.url"
+                },
+                "file_upload_data": {
+                    "$ref": "#/definitions/utils.SignatureFormat"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "sender": {
+                    "$ref": "#/definitions/models.UserDataSchema"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "Jesus is King"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1473,12 +1649,6 @@
             "properties": {
                 "author": {
                     "$ref": "#/definitions/models.UserDataSchema"
-                },
-                "commentID": {
-                    "type": "string"
-                },
-                "commentObj": {
-                    "$ref": "#/definitions/models.Comment"
                 },
                 "created_at": {
                     "type": "string"
@@ -1632,6 +1802,45 @@
                 "username": {
                     "type": "string",
                     "example": "john-doe"
+                }
+            }
+        },
+        "schemas.ChatsResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "chats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Chat"
+                    }
+                },
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "schemas.ChatsResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.ChatsResponseDataSchema"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },
@@ -1807,6 +2016,43 @@
                 "password": {
                     "type": "string",
                     "example": "password"
+                }
+            }
+        },
+        "schemas.MessageCreateResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Message"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "schemas.MessageCreateSchema": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "type": "string",
+                    "example": "d10dde64-a242-4ed0-bd75-4c759644b3a6"
+                },
+                "file_type": {
+                    "type": "string",
+                    "example": "image/jpeg"
+                },
+                "text": {
+                    "type": "string",
+                    "example": "I am not in danger skyler, I am the danger"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john-doe"
                 }
             }
         },

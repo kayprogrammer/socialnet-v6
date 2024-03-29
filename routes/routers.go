@@ -65,4 +65,15 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	feedRouter.Get("/replies/:slug", endpoint.RetrieveReply)
 	feedRouter.Put("/replies/:slug", endpoint.AuthMiddleware, endpoint.UpdateReply)
 	feedRouter.Delete("/replies/:slug", endpoint.AuthMiddleware, endpoint.DeleteReply)
+
+	// Chat Routes (9)
+	chatRouter := api.Group("/chats", endpoint.AuthMiddleware)
+	chatRouter.Get("", endpoint.RetrieveUserChats)
+	chatRouter.Post("", endpoint.SendMessage)
+	// chatRouter.Get("/:chat_id", endpoint.RetrieveMessages)
+	// chatRouter.Patch("/:chat_id", endpoint.UpdateGroupChat)
+	// chatRouter.Delete("/:chat_id", endpoint.DeleteGroupChat)
+	// chatRouter.Put("/messages/:message_id", endpoint.UpdateMessage)
+	// chatRouter.Delete("/messages/:message_id", endpoint.DeleteMessage)
+	// chatRouter.Post("/groups/group", endpoint.CreateGroupChat)
 }

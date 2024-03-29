@@ -2,6 +2,14 @@ basePath: /api/v6
 consumes:
 - application/json
 definitions:
+  choices.ChatTypeChoice:
+    enum:
+    - DM
+    - GROUP
+    type: string
+    x-enum-varnames:
+    - CDM
+    - CGROUP
   choices.NotificationChoice:
     enum:
     - REACTION
@@ -30,6 +38,44 @@ definitions:
     - RWOW
     - RSAD
     - RANGRY
+  models.Chat:
+    properties:
+      created_at:
+        type: string
+      ctype:
+        allOf:
+        - $ref: '#/definitions/choices.ChatTypeChoice'
+        example: DM
+      description:
+        example: A nice group for tech enthusiasts
+        type: string
+      file_upload_data:
+        $ref: '#/definitions/utils.SignatureFormat'
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      image:
+        example: https://img.url
+        type: string
+      latest_message:
+        $ref: '#/definitions/models.LatestMessageSchema'
+      messages:
+        items:
+          $ref: '#/definitions/models.Message'
+        type: array
+      name:
+        example: My Group
+        type: string
+      owner:
+        $ref: '#/definitions/models.UserDataSchema'
+      updated_at:
+        type: string
+      users:
+        description: omitempty later to show for groups
+        items:
+          $ref: '#/definitions/models.UserDataSchema'
+        type: array
+    type: object
   models.City:
     properties:
       country:
@@ -66,6 +112,37 @@ definitions:
       slug:
         type: string
       text:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.LatestMessageSchema:
+    properties:
+      file:
+        type: string
+      sender:
+        $ref: '#/definitions/models.UserDataSchema'
+      text:
+        type: string
+    type: object
+  models.Message:
+    properties:
+      chat_id:
+        type: string
+      created_at:
+        type: string
+      file:
+        example: https://img.url
+        type: string
+      file_upload_data:
+        $ref: '#/definitions/utils.SignatureFormat'
+      id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      sender:
+        $ref: '#/definitions/models.UserDataSchema'
+      text:
+        example: Jesus is King
         type: string
       updated_at:
         type: string
@@ -152,10 +229,6 @@ definitions:
     properties:
       author:
         $ref: '#/definitions/models.UserDataSchema'
-      commentID:
-        type: string
-      commentObj:
-        $ref: '#/definitions/models.Comment'
       created_at:
         type: string
       id:
@@ -264,6 +337,33 @@ definitions:
         type: string
     required:
     - username
+    type: object
+  schemas.ChatsResponseDataSchema:
+    properties:
+      chats:
+        items:
+          $ref: '#/definitions/models.Chat'
+        type: array
+      current_page:
+        example: 1
+        type: integer
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+    type: object
+  schemas.ChatsResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.ChatsResponseDataSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
     type: object
   schemas.CitiesResponseSchema:
     properties:
@@ -384,6 +484,32 @@ definitions:
     required:
     - email
     - password
+    type: object
+  schemas.MessageCreateResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Message'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.MessageCreateSchema:
+    properties:
+      chat_id:
+        example: d10dde64-a242-4ed0-bd75-4c759644b3a6
+        type: string
+      file_type:
+        example: image/jpeg
+        type: string
+      text:
+        example: I am not in danger skyler, I am the danger
+        type: string
+      username:
+        example: john-doe
+        type: string
     type: object
   schemas.NotificationsResponseDataSchema:
     properties:
@@ -959,6 +1085,54 @@ paths:
       summary: Verify a user's email
       tags:
       - Auth
+  /chats:
+    get:
+      description: '`This endpoint retrieves a paginated list of the current user
+        chats`'
+      parameters:
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ChatsResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Retrieve User Chats
+      tags:
+      - Chat
+    post:
+      description: |-
+        `This endpoint sends a message`
+
+        `You must either send a text or a file or both.`
+
+        `If there's no chat_id, then its a new chat and you must set username and leave chat_id`
+
+        `If chat_id is available, then ignore username and set the correct chat_id`
+
+        `The file_upload_data in the response is what is used for uploading the file to cloudinary from client`
+      parameters:
+      - description: Message object
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.MessageCreateSchema'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schemas.MessageCreateResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Send a message
+      tags:
+      - Chat
   /feed/comments/{slug}:
     delete:
       description: This endpoint deletes a comment

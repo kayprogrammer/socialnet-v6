@@ -7,18 +7,27 @@ import (
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // ----------------------------------
 // CHAT MANAGEMENT
 // --------------------------------
+func ChatOwnerImageScope(db *gorm.DB) *gorm.DB {
+	return db.Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj")
+}
+
+func ChatPreloadMessageScope(db *gorm.DB) *gorm.DB {
+	return db.Preload("Messages", func(tx *gorm.DB) *gorm.DB {
+		return tx.Joins("SenderObj").Joins("SenderObj.AvatarObj").Joins("FileObj").Order("created_at DESC").Limit(1)
+	})
+}
+
 type ChatManager struct {
 }
 
-func (obj ChatManager) GetUserChats(db *gorm.DB, userObj models.User) []models.Chat {
+func (obj ChatManager) GetUserChats(db *gorm.DB, user models.User) []models.Chat {
 	chats := []models.Chat{}
-	db.Where(models.Chat{OwnerID: userObj.ID}).Or(models.Chat{UserObjs: []models.User{userObj}}).Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj").Joins("Messages")
+	db.Scopes(ChatOwnerImageScope, ChatPreloadMessageScope).Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Find(&chats)
 	return chats
 }
 
@@ -48,7 +57,7 @@ func (obj ChatManager) Create(db *gorm.DB, owner models.User, ctype choices.Chat
 	if len(recipientsOpts) > 0 {
 		chat.UserObjs = recipientsOpts[0]
 	}
-	db.Omit("ImageObj", "OwnerObj").Create(&chat)
+	db.Create(&chat)
 	return chat
 }
 
@@ -70,7 +79,7 @@ func (obj ChatManager) CreateGroup(db *gorm.DB, owner models.User, usersToAdd []
 		chat.ImageID = &image.ID
 		chat.ImageObj = &image
 	}
-	db.Omit("ImageObj", "OwnerObj").Create(&chat)
+	db.Omit("UserObjs.*").Create(&chat)
 	return chat
 }
 
@@ -86,8 +95,6 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 			db.Not("id IN ?", originalExistingUserIDs).Or(models.User{BaseModel: models.BaseModel{ID: chat.OwnerID}}),
 		).Find(&usersToAdd)
 		expectedUserTotal += len(usersToAdd)
-
-		// chatUpdateQuery = chatUpdateQuery.AddUsers(usersToAdd...)
 	}
 	usersToRemove := []models.User{}
 	if usernamesToRemove != nil {
@@ -100,7 +107,6 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 		}
 		db.Where("username IN ?", usernamesToRemove).Not(models.User{BaseModel: models.BaseModel{ID: chat.OwnerID}}).Find(&usernamesToRemove, originalExistingUserIDs)
 		expectedUserTotal -= len(usersToRemove)
-		// chatUpdateQuery = chatUpdateQuery.RemoveUsers(usersToRemove...)
 	}
 	if expectedUserTotal > 99 {
 		data := map[string]string{
@@ -109,6 +115,8 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 		errData := utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data)
 		return nil, &errData
 	}
+	db.Model(&chat).Association("UserObjs").Append(&usersToAdd)
+	db.Model(&chat).Association("UserObjs").Delete(&usernamesToRemove)
 	return chat, nil
 }
 
@@ -176,6 +184,7 @@ func (obj ChatManager) GetMessagesCount(db *gorm.DB, chatID uuid.UUID) int64 {
 func MessageSenderScope(db *gorm.DB) *gorm.DB {
 	return db.Joins("SenderObj").Joins("SenderObj.AvatarObj").Joins("ChatObj").Joins("FileObj")
 }
+
 type MessageManager struct {
 }
 
@@ -187,7 +196,7 @@ func (obj MessageManager) Create(db *gorm.DB, sender models.User, chat models.Ch
 		message.FileID = &file.ID
 		message.FileObj = &file
 	}
-	db.Omit(clause.Associations).Create(&message)
+	db.Create(&message)
 	return message
 }
 
@@ -207,7 +216,7 @@ func (obj MessageManager) Update(db *gorm.DB, message models.Message, text *stri
 	if text != nil {
 		message.Text = text
 	}
-	db.Omit(clause.Associations).Save(&message)
+	db.Save(&message)
 	return message
 }
 

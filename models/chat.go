@@ -16,19 +16,19 @@ type LatestMessageSchema struct {
 type Chat struct {
 	BaseModel
 	OwnerID     uuid.UUID              `json:"-"`
-	OwnerObj    User                   `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	OwnerObj    User                   `json:"-" gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE;<-:false"`
 	Owner       UserDataSchema         `gorm:"-" json:"owner"`
 	Name        *string                `gorm:"varchar(50)" json:"name" example:"My Group"`
 	Ctype       choices.ChatTypeChoice `gorm:"varchar(50);check:(ctype = 'GROUP' AND name IS NOT NULL) OR (ctype = 'DM')" json:"ctype" example:"DM"`
 	Description *string                `gorm:"varchar(200);check:(ctype = 'DM' AND name IS NULL AND description IS NULL AND image_id IS NULL) OR (ctype = 'GROUP')" json:"description" example:"A nice group for tech enthusiasts"`
 	ImageID     *uuid.UUID             `json:"-"`
-	ImageObj    *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
+	ImageObj    *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL;<-:false" json:"-"`
 	Image       *string                `gorm:"-" json:"image" example:"https://img.url"`
-	UserObjs    []User                 `gorm:"many2many:chat_users;"`
-	Messages    []Message              `gorm:"-"`
+	UserObjs    []User                 `json:"-" gorm:"many2many:chat_users;"`
+	Messages    []Message              `json:"-"`
 
 	LatestMessage *LatestMessageSchema `gorm:"-" json:"latest_message"`
-	Users		[]UserDataSchema		`gorm:"-" json:"users"` // omitempty later to show for groups
+	Users		[]UserDataSchema		`gorm:"-" json:"users,omitempty" swaggerIgnore:"true"` // omitempty later to show for groups
 	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
 }
 
@@ -37,11 +37,7 @@ func (c Chat) Init() Chat {
 	c.Owner = c.Owner.Init(c.OwnerObj)
 
 	// Set ImageUrl
-	image := c.ImageObj
-	if image != nil {
-		url := utils.GenerateFileUrl(image.ID.String(), "groups", image.ResourceType)
-		c.Image = &url
-	}
+	c.Image = c.GetImageUrl()
 
 	// Set Latest Message
 	latestMessages := c.Messages
@@ -61,6 +57,13 @@ func (c Chat) Init() Chat {
 		c.LatestMessage = &lm
 	}
 
+	c.Users = nil
+	return c
+}
+
+func (c Chat) InitG() Chat {
+	// Init Group Chat
+	c = c.Init()
 	// Set Users Details for groups.
 	users := []UserDataSchema{}
 	for _, user := range c.UserObjs {
@@ -71,10 +74,11 @@ func (c Chat) Init() Chat {
 	return c
 }
 
+
 func (c Chat) GetImageUrl() *string {
 	image := c.ImageObj
 	if image != nil {
-		url := utils.GenerateFileUrl(image.ID.String(), "chats", image.ResourceType)
+		url := utils.GenerateFileUrl(image.ID.String(), "groups", image.ResourceType)
 		return &url
 	}
 	return nil
@@ -94,13 +98,13 @@ func (c Chat) InitC(fileType *string) Chat {
 type Message struct {
 	BaseModel
 	SenderID  uuid.UUID      `json:"-"`
-	SenderObj User           `json:"-" gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE"`
+	SenderObj User           `json:"-" gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE;<-:false;"`
 	Sender    UserDataSchema `gorm:"-" json:"sender"`
 	ChatID    uuid.UUID      `json:"chat_id"`
-	ChatObj   Chat           `json:"-" gorm:"foreignKey:ChatID;constraint:OnDelete:CASCADE"`
+	ChatObj   Chat           `json:"-" gorm:"foreignKey:ChatID;constraint:OnDelete:CASCADE;<-:false"`
 	Text      *string        `gorm:"varchar(1000000)" json:"text" example:"Jesus is King"`
 	FileID    *uuid.UUID     `json:"-"`
-	FileObj   *File          `gorm:"foreignKey:FileID;constraint:OnDelete:SET NULL" json:"-"`
+	FileObj   *File          `gorm:"foreignKey:FileID;constraint:OnDelete:SET NULL;<-:false" json:"-"`
 	File      *string        `gorm:"-" json:"file" example:"https://img.url"`
 	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
 }

@@ -10,7 +10,7 @@ import (
 type FeedAbstract struct {
 	BaseModel
 	AuthorID  uuid.UUID      `gorm:"not null" json:"-"`
-	AuthorObj User           `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE" json:"-"`
+	AuthorObj User           `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE;<-:false" json:"-"`
 	Author    UserDataSchema `gorm:"-" json:"author"`
 	Text      string         `json:"text"`
 	Slug      string         `gorm:"unique;not null;" json:"slug"`
@@ -21,7 +21,7 @@ type FeedAbstract struct {
 type Post struct {
 	FeedAbstract
 	ImageID        *uuid.UUID             `gorm:"null" json:"-"`
-	ImageObj       *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL" json:"-"`
+	ImageObj       *File                  `gorm:"foreignKey:ImageID;constraint:OnDelete:SET NULL;<-:false" json:"-"`
 	Image          *string                `gorm:"-" json:"image"`
 	Comments       []Comment              `json:"-"`
 	CommentsCount  int                    `json:"comments_count" gorm:"-"`
@@ -60,7 +60,7 @@ func (p Post) GetImageUrl() *string {
 type Comment struct {
 	FeedAbstract
 	PostID  uuid.UUID `json:"-" gorm:"not null"`
-	PostObj Post      `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	PostObj Post      `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE;<-:false"`
 	Replies []Reply   `json:"-"`
 	RepliesCount int   `json:"replies_count" gorm:"-" example:"50"`
 }
@@ -76,7 +76,7 @@ func (c Comment) Init() Comment {
 type Reply struct {
 	FeedAbstract
 	CommentID  uuid.UUID `json:"-" gorm:"not null"`
-	CommentObj Comment   `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+	CommentObj Comment   `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE;<-:false"`
 }
 
 func (r Reply) Init() Reply {
@@ -88,15 +88,15 @@ func (r Reply) Init() Reply {
 type Reaction struct {
 	BaseModel
 	UserID    uuid.UUID              `json:"-" gorm:"not null;index:,unique,composite:user_id_post_id;index:,unique,composite:user_id_comment_id;index:,unique,composite:user_id_reply_id"`
-	UserObj   User                   `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
+	UserObj   User                   `json:"-" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;<-:false"`
 	User      UserDataSchema         `gorm:"-" json:"user"`
 	Rtype     choices.ReactionChoice `gorm:"varchar(50)" json:"rtype" example:"LIKE"`
 	PostID    *uuid.UUID              `json:"-" gorm:"null;index:,unique,composite:user_id_post_id"`
-	Post      *Post                   `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	Post      *Post                   `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE;<-:false"`
 	CommentID *uuid.UUID              `json:"-" gorm:"null;index:,unique,composite:user_id_comment_id"`
-	Comment   *Comment                `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+	Comment   *Comment                `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE;<-:false"`
 	ReplyID   *uuid.UUID              `json:"-" gorm:"null;index:,unique,composite:user_id_reply_id"`
-	Reply     *Reply                  `json:"-" gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE"`
+	Reply     *Reply                  `json:"-" gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE;<-:false"`
 }
 
 func (r *Reaction) Init() {
