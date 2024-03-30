@@ -70,7 +70,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	chatRouter := api.Group("/chats", endpoint.AuthMiddleware)
 	chatRouter.Get("", endpoint.RetrieveUserChats)
 	chatRouter.Post("", endpoint.SendMessage)
-	// chatRouter.Get("/:chat_id", endpoint.RetrieveMessages)
+	chatRouter.Get("/:chat_id", endpoint.RetrieveMessages)
 	// chatRouter.Patch("/:chat_id", endpoint.UpdateGroupChat)
 	// chatRouter.Delete("/:chat_id", endpoint.DeleteGroupChat)
 	// chatRouter.Put("/messages/:message_id", endpoint.UpdateMessage)

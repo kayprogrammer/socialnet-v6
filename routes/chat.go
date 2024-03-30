@@ -109,46 +109,45 @@ func (endpoint Endpoint) SendMessage(c *fiber.Ctx) error {
 	return c.Status(201).JSON(response)
 }
 
-// // @Summary Retrieve messages from a Chat
-// // @Description `This endpoint retrieves all messages in a chat`
-// // @Tags Chat
-// // @Param chat_id path string true "Chat ID (uuid)"
-// // @Param page query int false "Current Page" default(1)
-// // @Success 200 {object} schemas.ChatResponseSchema
-// // @Router /chats/{chat_id} [get]
-// // @Security BearerAuth
-// func (endpoint Endpoint) RetrieveMessages(c *fiber.Ctx) error {
-// 	db := endpoint.DB
-// 	user := RequestUser(c)
-// 	// Parse the UUID parameter
-// 	chatID, err := utils.ParseUUID(c.Params("chat_id"))
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	chat := chatManager.GetSingleUserChatFullDetails(db, user, *chatID)
-// 	if chat == nil {
-// 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "User has no chat with that ID"))
-// 	}
+// @Summary Retrieve messages from a Chat
+// @Description `This endpoint retrieves all messages in a chat`
+// @Tags Chat
+// @Param chat_id path string true "Chat ID (uuid)"
+// @Param page query int false "Current Page" default(1)
+// @Success 200 {object} schemas.ChatResponseSchema
+// @Router /chats/{chat_id} [get]
+// @Security BearerAuth
+func (endpoint Endpoint) RetrieveMessages(c *fiber.Ctx) error {
+	db := endpoint.DB
+	user := RequestUser(c)
+	// Parse the UUID parameter
+	chatID, err := utils.ParseUUID(c.Params("chat_id"))
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	chat := chatManager.GetSingleUserChatFullDetails(db, *user, *chatID)
+	if chat.ID == nil {
+		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "User has no chat with that ID"))
+	}
 	
-// 	// Paginate, Convert type and return Messages
-// 	convertedChat := utils.ConvertStructData(chat, schemas.ChatSchema{}).(*schemas.ChatSchema)
-// 	paginatedData, paginatedMessages, err := PaginateQueryset(chat.Edges.Messages, c, 400)
-// 	if err != nil {
-// 		return c.Status(400).JSON(err)
-// 	}
-// 	convertedMessages := utils.ConvertStructData(paginatedMessages, []schemas.MessageSchema{}).(*[]schemas.MessageSchema)
-// 	response := schemas.ChatResponseSchema{
-// 		ResponseSchema: schemas.ResponseSchema{Message: "Messages fetched"}.Init(),
-// 		Data: schemas.MessagesSchema{
-// 			Chat: *convertedChat,
-// 			Messages: schemas.MessagesResponseDataSchema{
-// 				PaginatedResponseDataSchema: *paginatedData,
-// 				Items:                       *convertedMessages,
-// 			}.Init(),
-// 		}.Init(),
-// 	}
-// 	return c.Status(200).JSON(response)
-// }
+	// Paginate, Convert type and return Messages
+	paginatedData, paginatedMessages, err := PaginateQueryset(chat.Messages, c, 400)
+	if err != nil {
+		return c.Status(400).JSON(err)
+	}
+	var messages []models.Message = paginatedMessages.([]models.Message)
+	response := schemas.ChatResponseSchema{
+		ResponseSchema: SuccessResponse("Messages fetched"),
+		Data: schemas.MessagesSchema{
+			Chat: chat,
+			Messages: schemas.MessagesResponseDataSchema{
+				PaginatedResponseDataSchema: *paginatedData,
+				Items:                       messages,
+			}.Init(),
+		}.Init(),
+	}
+	return c.Status(200).JSON(response)
+}
 
 // // @Summary Update a Group Chat
 // // @Description `This endpoint updates a group chat.`

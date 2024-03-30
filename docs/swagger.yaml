@@ -59,10 +59,6 @@ definitions:
         type: string
       latest_message:
         $ref: '#/definitions/models.LatestMessageSchema'
-      messages:
-        items:
-          $ref: '#/definitions/models.Message'
-        type: array
       name:
         example: My Group
         type: string
@@ -338,6 +334,17 @@ definitions:
     required:
     - username
     type: object
+  schemas.ChatResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/schemas.MessagesSchema'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
   schemas.ChatsResponseDataSchema:
     properties:
       chats:
@@ -510,6 +517,33 @@ definitions:
       username:
         example: john-doe
         type: string
+    type: object
+  schemas.MessagesResponseDataSchema:
+    properties:
+      current_page:
+        example: 1
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/models.Message'
+        type: array
+      last_page:
+        example: 100
+        type: integer
+      per_page:
+        example: 100
+        type: integer
+    type: object
+  schemas.MessagesSchema:
+    properties:
+      chat:
+        $ref: '#/definitions/models.Chat'
+      messages:
+        $ref: '#/definitions/schemas.MessagesResponseDataSchema'
+      users:
+        items:
+          $ref: '#/definitions/models.UserDataSchema'
+        type: array
     type: object
   schemas.NotificationsResponseDataSchema:
     properties:
@@ -1131,6 +1165,30 @@ paths:
       security:
       - BearerAuth: []
       summary: Send a message
+      tags:
+      - Chat
+  /chats/{chat_id}:
+    get:
+      description: '`This endpoint retrieves all messages in a chat`'
+      parameters:
+      - description: Chat ID (uuid)
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - default: 1
+        description: Current Page
+        in: query
+        name: page
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ChatResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Retrieve messages from a Chat
       tags:
       - Chat
   /feed/comments/{slug}:

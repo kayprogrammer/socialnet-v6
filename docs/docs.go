@@ -385,6 +385,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/chats/{chat_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "` + "`" + `This endpoint retrieves all messages in a chat` + "`" + `",
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "Retrieve messages from a Chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID (uuid)",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Current Page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.ChatResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
         "/feed/comments/{slug}": {
             "get": {
                 "description": "This endpoint retrieves a comment with replies",
@@ -1404,12 +1442,6 @@ const docTemplate = `{
                 "latest_message": {
                     "$ref": "#/definitions/models.LatestMessageSchema"
                 },
-                "messages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Message"
-                    }
-                },
                 "name": {
                     "type": "string",
                     "example": "My Group"
@@ -1813,6 +1845,22 @@ const docTemplate = `{
                 }
             }
         },
+        "schemas.ChatResponseSchema": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/schemas.MessagesSchema"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Data fetched/created/updated/deleted"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
         "schemas.ChatsResponseDataSchema": {
             "type": "object",
             "properties": {
@@ -2061,6 +2109,46 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "john-doe"
+                }
+            }
+        },
+        "schemas.MessagesResponseDataSchema": {
+            "type": "object",
+            "properties": {
+                "current_page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Message"
+                    }
+                },
+                "last_page": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "per_page": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "schemas.MessagesSchema": {
+            "type": "object",
+            "properties": {
+                "chat": {
+                    "$ref": "#/definitions/models.Chat"
+                },
+                "messages": {
+                    "$ref": "#/definitions/schemas.MessagesResponseDataSchema"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserDataSchema"
+                    }
                 }
             }
         },

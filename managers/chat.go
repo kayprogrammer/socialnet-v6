@@ -16,9 +16,19 @@ func ChatOwnerImageScope(db *gorm.DB) *gorm.DB {
 	return db.Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj")
 }
 
-func ChatPreloadMessageScope(db *gorm.DB) *gorm.DB {
+func MessageSenderFileScope(db *gorm.DB) *gorm.DB {
+	return db.Joins("SenderObj").Joins("SenderObj.AvatarObj").Joins("FileObj")
+}
+
+func ChatPreloadMessagesScope(db *gorm.DB) *gorm.DB {
 	return db.Preload("Messages", func(tx *gorm.DB) *gorm.DB {
-		return tx.Joins("SenderObj").Joins("SenderObj.AvatarObj").Joins("FileObj").Order("created_at DESC").Limit(1)
+		return tx.Scopes(MessageSenderFileScope).Order("created_at DESC")
+	})
+}
+
+func ChatPreloadLatestMessageScope(db *gorm.DB) *gorm.DB {
+	return db.Preload("Messages", func(tx *gorm.DB) *gorm.DB {
+		return tx.Scopes(MessageSenderFileScope).Order("created_at DESC").Limit(1)
 	})
 }
 
@@ -27,13 +37,13 @@ type ChatManager struct {
 
 func (obj ChatManager) GetUserChats(db *gorm.DB, user models.User) []models.Chat {
 	chats := []models.Chat{}
-	db.Scopes(ChatOwnerImageScope, ChatPreloadMessageScope).Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Find(&chats)
+	db.Scopes(ChatOwnerImageScope, ChatPreloadLatestMessageScope).Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Find(&chats)
 	return chats
 }
 
 func (obj ChatManager) GetByID(db *gorm.DB, id uuid.UUID) models.Chat {
 	chat := models.Chat{}
-	db.Joins("Users").Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	db.Preload("UserObjs").Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
 	return chat
 }
 
@@ -153,7 +163,11 @@ func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.
 
 func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{}
-	db.Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj").Joins("Users").Preload("Messages").Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	db.Where(models.Chat{BaseModel: models.BaseModel{ID: id}}).
+		Where(
+			db.Preload("UserObjs").Where("id IN (SELECT chat_id FROM chat_users WHERE id IN ?)", []uuid.UUID{user.ID}).
+			Or(models.Chat{OwnerID: user.ID}),
+		).Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).Take(&chat, chat)
 	return chat
 }
 
@@ -161,7 +175,7 @@ func (obj ChatManager) GetUserGroup(db *gorm.DB, user models.User, id uuid.UUID,
 	chat := models.Chat{Ctype: choices.CGROUP, OwnerID: user.ID}
 	q := db
 	if len(detailedOpts) > 0 {
-		q = q.Joins("OwnerObj").Joins("OwnerObj.AvatarObj").Joins("ImageObj").Joins("Users")
+		q = q.Scopes(ChatOwnerImageScope).Preload("UserObjs")
 	}
 	q.Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
 	return chat
