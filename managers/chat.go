@@ -162,7 +162,7 @@ func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.
 }
 
 func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
-	chat := models.Chat{}
+	chat := models.Chat{} // Wahala wa o
 	db.Where(models.Chat{BaseModel: models.BaseModel{ID: id}}).
 		Where(
 			db.Preload("UserObjs").Where("id IN (SELECT chat_id FROM chat_users WHERE id IN ?)", []uuid.UUID{user.ID}).
