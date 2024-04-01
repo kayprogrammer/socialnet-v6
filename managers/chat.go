@@ -1,6 +1,8 @@
 package managers
 
 import (
+	"log"
+
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
@@ -37,7 +39,13 @@ type ChatManager struct {
 
 func (obj ChatManager) GetUserChats(db *gorm.DB, user models.User) []models.Chat {
 	chats := []models.Chat{}
-	db.Scopes(ChatOwnerImageScope, ChatPreloadLatestMessageScope).Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Find(&chats)
+	db.Model(&models.Chat{}).
+		Where(models.Chat{OwnerID: user.ID}).
+		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)).
+		Scopes(ChatOwnerImageScope, ChatPreloadLatestMessageScope).
+		Find(&chats)
+
+	log.Println(chats[0].Messages)
 	return chats
 }
 
@@ -157,17 +165,22 @@ func (obj ChatManager) UpdateGroup(db *gorm.DB, chat *models.Chat, data schemas.
 
 func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{}
-	db.Where(models.Chat{OwnerID: user.ID}).Or(models.Chat{UserObjs: []models.User{user}}).Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	db.Model(&models.Chat{}).Where(
+		db.Where(models.Chat{OwnerID: user.ID}).
+		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)),
+	).Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
 	return chat
 }
 
 func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{} // Wahala wa o
-	db.Where(models.Chat{BaseModel: models.BaseModel{ID: id}}).
+	db.Model(&models.Chat{}).Where(models.Chat{BaseModel: models.BaseModel{ID: id}}).
 		Where(
-			db.Preload("UserObjs").Where("id IN (SELECT chat_id FROM chat_users WHERE id IN ?)", []uuid.UUID{user.ID}).
-			Or(models.Chat{OwnerID: user.ID}),
-		).Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).Take(&chat, chat)
+			db.Where(models.Chat{OwnerID: user.ID}).
+			Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)),
+		).Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).
+		Preload("UserObjs").
+		Take(&chat, chat)
 	return chat
 }
 
