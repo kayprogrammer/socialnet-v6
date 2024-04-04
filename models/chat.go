@@ -56,8 +56,6 @@ func (c Chat) Init() Chat {
 		lm.Sender = lm.Sender.Init(latestMessage.SenderObj)
 		c.LatestMessage = &lm
 	}
-
-	c.Users = nil
 	return c
 }
 

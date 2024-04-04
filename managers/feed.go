@@ -286,7 +286,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 
 func (obj ReactionManager) GetByID(db *gorm.DB, id *uuid.UUID) (*models.Reaction, *int, *utils.ErrorResponse) {
 	reaction := models.Reaction{}
-	db.Scopes(UserAvatarReactionScope).Take(&reaction, models.Reaction{BaseModel: models.BaseModel{ID: *id}})
+	db.Scopes(UserAvatarReactionScope).Take(&reaction, *id)
 	if reaction.ID == nil {
 		statusCode := 404
 		errData := utils.RequestErr(utils.ERR_NON_EXISTENT, "Reaction does not exist")

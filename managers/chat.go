@@ -1,8 +1,6 @@
 package managers
 
 import (
-	"log"
-
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
@@ -24,15 +22,10 @@ func MessageSenderFileScope(db *gorm.DB) *gorm.DB {
 
 func ChatPreloadMessagesScope(db *gorm.DB) *gorm.DB {
 	return db.Preload("Messages", func(tx *gorm.DB) *gorm.DB {
-		return tx.Scopes(MessageSenderFileScope).Order("created_at DESC")
+		return tx.Scopes(MessageSenderFileScope).Order("messages.created_at DESC")
 	})
 }
 
-func ChatPreloadLatestMessageScope(db *gorm.DB) *gorm.DB {
-	return db.Preload("Messages", func(tx *gorm.DB) *gorm.DB {
-		return tx.Scopes(MessageSenderFileScope).Order("created_at DESC").Limit(1)
-	})
-}
 
 type ChatManager struct {
 }
@@ -42,10 +35,8 @@ func (obj ChatManager) GetUserChats(db *gorm.DB, user models.User) []models.Chat
 	db.Model(&models.Chat{}).
 		Where(models.Chat{OwnerID: user.ID}).
 		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)).
-		Scopes(ChatOwnerImageScope, ChatPreloadLatestMessageScope).
+		Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).
 		Find(&chats)
-
-	log.Println(chats[0].Messages)
 	return chats
 }
 
@@ -165,22 +156,19 @@ func (obj ChatManager) UpdateGroup(db *gorm.DB, chat *models.Chat, data schemas.
 
 func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{}
-	db.Model(&models.Chat{}).Where(
-		db.Where(models.Chat{OwnerID: user.ID}).
-		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)),
-	).Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	db.Model(&models.Chat{}).Where(models.Chat{OwnerID: user.ID}).
+		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)).
+		Take(&chat, id)
 	return chat
 }
 
 func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{} // Wahala wa o
-	db.Model(&models.Chat{}).Where(models.Chat{BaseModel: models.BaseModel{ID: id}}).
-		Where(
-			db.Where(models.Chat{OwnerID: user.ID}).
-			Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)),
-		).Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).
+	db.Model(&models.Chat{}).Where(models.Chat{OwnerID: user.ID}).
+		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID)).
+		Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).
 		Preload("UserObjs").
-		Take(&chat, chat)
+		Take(&chat, id)
 	return chat
 }
 
@@ -200,9 +188,9 @@ func (obj ChatManager) GetMessagesCount(db *gorm.DB, chatID uuid.UUID) int64 {
 	return messagesCount
 }
 
-// func (obj ChatManager) DropData(db *gorm.DB) {
-// 	client.Chat.Delete().ExecX(Ctx)
-// }
+func (obj ChatManager) DropData(db *gorm.DB) {
+	db.Delete(models.Chat{})
+}
 
 // ----------------------------------
 // MESSAGE MANAGEMENT

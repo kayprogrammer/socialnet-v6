@@ -96,7 +96,7 @@ func (obj NotificationManager) MarkAsRead(db *gorm.DB, user *models.User) {
 
 func (obj NotificationManager) ReadOne(db *gorm.DB, user *models.User, notificationID uuid.UUID) *utils.ErrorResponse {
 	notification := models.Notification{}
-	db.Model(&user).Take(&notification, models.Notification{BaseModel: models.BaseModel{ID: notificationID}}, "NotificationsReceived")
+	db.Model(&user).Take(&notification, notificationID, "NotificationsReceived")
 
 	if notification.ID == nil {
 		errData := utils.RequestErr(utils.ERR_NON_EXISTENT, "User has no notification with that ID")
@@ -136,7 +136,7 @@ func (obj NotificationManager) Get(db *gorm.DB, sender *models.User, ntype choic
 
 func (obj NotificationManager) IsAmongReceivers(db *gorm.DB, notificationID uuid.UUID, receiverID uuid.UUID) bool {
 	notification := models.Notification{}
-	db.Preload("Receivers").Take(&notification, models.Notification{BaseModel: models.BaseModel{ID: notificationID}})
+	db.Preload("Receivers").Take(&notification, notificationID)
 	if notification.ID == nil {
 		return false
 	}

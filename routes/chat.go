@@ -129,7 +129,7 @@ func (endpoint Endpoint) RetrieveMessages(c *fiber.Ctx) error {
 	if chat.ID == nil {
 		return c.Status(404).JSON(utils.RequestErr(utils.ERR_NON_EXISTENT, "User has no chat with that ID"))
 	}
-	
+
 	// Paginate, Convert type and return Messages
 	paginatedData, paginatedMessages, err := PaginateQueryset(chat.Messages, c, 400)
 	if err != nil {

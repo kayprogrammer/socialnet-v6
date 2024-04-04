@@ -40,11 +40,11 @@ type MessagesSchema struct {
 
 func (data MessagesSchema) Init() MessagesSchema {
 	// Set Initial Data
-	// Set Chat
-	chat := data.Chat.Init()
-	data.Chat = chat
+	chat := data.Chat.InitG()
 	// Set Users
 	data.Users = chat.Users
+	chat.Users = nil
+	data.Chat = chat
 	return data
 }
 
