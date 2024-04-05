@@ -83,7 +83,7 @@ func (c Chat) GetImageUrl() *string {
 }
 
 func (c Chat) InitC(fileType *string) Chat {
-	c = c.Init()
+	c = c.InitG()
 	// When chat is created
 	file := c.ImageObj
 	if fileType != nil && file != nil { // Generate data when file is being uploaded

@@ -1,6 +1,8 @@
 package managers
 
 import (
+	"log"
+
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
@@ -25,7 +27,6 @@ func ChatPreloadMessagesScope(db *gorm.DB) *gorm.DB {
 		return tx.Scopes(MessageSenderFileScope).Order("messages.created_at DESC")
 	})
 }
-
 
 type ChatManager struct {
 }
@@ -90,6 +91,16 @@ func (obj ChatManager) CreateGroup(db *gorm.DB, owner models.User, usersToAdd []
 	}
 	db.Omit("UserObjs.*").Create(&chat)
 	return chat
+}
+
+func (obj ChatManager) GetByUsernames(db *gorm.DB, usernames []string, excludeOpts ...uuid.UUID) []models.User {
+	users := []models.User{}
+	usersQ := db.Where("username IN ?", usernames)
+	if len(excludeOpts) > 0 {
+		usersQ = usersQ.Not("id = ?", excludeOpts[0])
+	}
+	usersQ.Find(&users)
+	return users
 }
 
 func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *models.Chat, usernamesToAdd *[]string, usernamesToRemove *[]string) (*models.Chat, *utils.ErrorResponse) {
@@ -178,7 +189,8 @@ func (obj ChatManager) GetUserGroup(db *gorm.DB, user models.User, id uuid.UUID,
 	if len(detailedOpts) > 0 {
 		q = q.Scopes(ChatOwnerImageScope).Preload("UserObjs")
 	}
-	q.Take(&chat, models.Chat{BaseModel: models.BaseModel{ID: id}})
+	q.Where(&chat).Take(&chat, id)
+	log.Println(chat)
 	return chat
 }
 

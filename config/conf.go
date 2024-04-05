@@ -30,7 +30,7 @@ type Config struct {
 	CloudinaryCloudName       string `mapstructure:"CLOUDINARY_CLOUD_NAME"`
 	CloudinaryAPIKey          string `mapstructure:"CLOUDINARY_API_KEY"`
 	CloudinaryAPISecret       string `mapstructure:"CLOUDINARY_API_SECRET"`
-	SOCKET_SECRET		      string `mapstructure:"SOCKET_SECRET"`
+	SocketSecret		      string `mapstructure:"SOCKET_SECRET"`
 }
 
 func GetConfig() (config Config) {

@@ -480,6 +480,72 @@ definitions:
     required:
     - email
     type: object
+  schemas.GroupChatCreateSchema:
+    properties:
+      description:
+        example: This is a group for bosses.
+        maxLength: 1000
+        type: string
+      file_type:
+        example: image/jpeg
+        type: string
+      name:
+        example: Dopest Group
+        maxLength: 100
+        type: string
+      usernames_to_add:
+        example:
+        - john-doe
+        items:
+          type: string
+        maxItems: 99
+        minItems: 1
+        type: array
+    required:
+    - name
+    - usernames_to_add
+    type: object
+  schemas.GroupChatInputResponseSchema:
+    properties:
+      data:
+        $ref: '#/definitions/models.Chat'
+      message:
+        example: Data fetched/created/updated/deleted
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  schemas.GroupChatInputSchema:
+    properties:
+      description:
+        example: This is a group for bosses.
+        maxLength: 1000
+        type: string
+      file_type:
+        example: image/jpeg
+        type: string
+      name:
+        example: Dopest Group
+        maxLength: 100
+        type: string
+      usernames_to_add:
+        example:
+        - john-doe
+        items:
+          type: string
+        maxItems: 99
+        minItems: 1
+        type: array
+      usernames_to_remove:
+        example:
+        - john-doe
+        items:
+          type: string
+        maxItems: 99
+        minItems: 1
+        type: array
+    type: object
   schemas.LoginSchema:
     properties:
       email:
@@ -516,6 +582,15 @@ definitions:
         type: string
       username:
         example: john-doe
+        type: string
+    type: object
+  schemas.MessageUpdateSchema:
+    properties:
+      file_type:
+        example: image/jpeg
+        type: string
+      text:
+        example: The Earth is the Lord's and the fullness thereof
         type: string
     type: object
   schemas.MessagesResponseDataSchema:
@@ -1168,6 +1243,24 @@ paths:
       tags:
       - Chat
   /chats/{chat_id}:
+    delete:
+      description: '`This endpoint deletes a group chat.`'
+      parameters:
+      - description: Chat ID (uuid)
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Delete a Group Chat
+      tags:
+      - Chat
     get:
       description: '`This endpoint retrieves all messages in a chat`'
       parameters:
@@ -1189,6 +1282,103 @@ paths:
       security:
       - BearerAuth: []
       summary: Retrieve messages from a Chat
+      tags:
+      - Chat
+    patch:
+      description: '`This endpoint updates a group chat.`'
+      parameters:
+      - description: Chat ID (uuid)
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Chat object
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.GroupChatInputSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.GroupChatInputResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Update a Group Chat
+      tags:
+      - Chat
+  /chats/groups/group:
+    post:
+      description: |-
+        `This endpoint creates a group chat.`
+
+        `The users_entry field should be a list of usernames you want to add to the group.`
+
+        `Note: You cannot add more than 99 users in a group (1 owner + 99 other users = 100 users total).`
+      parameters:
+      - description: Chat object
+        in: body
+        name: chat
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.GroupChatCreateSchema'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schemas.GroupChatInputResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Create a Group Chat
+      tags:
+      - Chat
+  /chats/messages/{message_id}:
+    delete:
+      description: '`This endpoint deletes a message.`'
+      parameters:
+      - description: Message ID (uuid)
+        in: path
+        name: message_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.ResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Delete a message
+      tags:
+      - Chat
+    put:
+      description: |-
+        `This endpoint updates a message.`
+
+        `You must either send a text or a file or both.`
+
+        `The file_upload_data in the response is what is used for uploading the file to cloudinary from client.`
+      parameters:
+      - description: Message ID (uuid)
+        in: path
+        name: message_id
+        required: true
+        type: string
+      - description: Message object
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/schemas.MessageUpdateSchema'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.MessageCreateResponseSchema'
+      security:
+      - BearerAuth: []
+      summary: Update a message
       tags:
       - Chat
   /feed/comments/{slug}:
