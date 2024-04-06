@@ -8,6 +8,7 @@ import (
 	"github.com/kayprogrammer/socialnet-v6/database"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm"
 )
@@ -48,7 +49,7 @@ func broadcastNotificationMessage(db *gorm.DB, mt int, msg []byte) {
 	// The only drawback I can think of concerning the below method is that if by any means there was an issue with the socket, the stuff won't get deleted.
 	// Omo na wahala be that oh. But anyway, just go ahead with the SetNull whatever. I'm too lazy to change anything now.
 	// Sorry for the long note (no vex)
-	if notificationObj.Status == "DELETED" && notificationObj.Ntype != "REACTION" {
+	if notificationObj.Status == "DELETED" && notificationObj.Ntype != choices.NREACTION {
 		if notificationObj.CommentSlug != nil {
 			var commentSlug string = *notificationObj.CommentSlug
 			db.Delete(&models.Comment{}, "slug = ?", commentSlug)

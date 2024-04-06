@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 )
@@ -225,7 +226,7 @@ func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
 	}
 
 	// Update Or Create Reaction
-	reaction, _, errCode, errData := reactionManager.UpdateOrCreate(db, *user, focus, slug, data.Rtype)
+	reaction, targetedObjAuthor, errCode, errData := reactionManager.UpdateOrCreate(db, *user, focus, slug, data.Rtype)
 	if errCode != nil {
 		return c.Status(*errCode).JSON(errData)
 	}
@@ -237,19 +238,19 @@ func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
 	}
 
 	// Create & Send Notifications
-	// if user.ID != targetedObjAuthor.ID {
-	// 	notification, created := notificationManager.GetOrCreate(
-	// 		db, user, "REACTION",
-	// 		[]uuid.UUID{targetedObjAuthor.ID},
-	// 		reaction.Edges.Post,
-	// 		reaction.Edges.Comment,
-	// 		reaction.Edges.Reply,
-	// 	)
+	if user.ID.String() != targetedObjAuthor.ID.String() {
+		notification, created := notificationManager.GetOrCreate(
+			db, user, choices.NREACTION,
+			[]models.User{*targetedObjAuthor},
+			reaction.Post,
+			reaction.Comment,
+			reaction.Reply,
+		)
 
-	// 	if created {
-	// 		SendNotificationInSocket(c, notification, nil, nil)
-	// 	}
-	// }
+		if created {
+			SendNotificationInSocket(c, notification, nil, nil)
+		}
+	}
 	return c.Status(201).JSON(response)
 }
 
@@ -282,14 +283,14 @@ func (endpoint Endpoint) DeleteReaction(c *fiber.Ctx) error {
 	}
 
 	// Remove Reaction Notifications
-	// notification := notificationManager.Get(
-	// 	db, user, "REACTION",
-	// 	reaction.Post, reaction.Comment, reaction.Reply,
-	// )
-	// if notification != nil {
-	// 	// Send to websocket and delete notification
-	// 	SendNotificationInSocket(c, notification, nil, nil, "DELETED")
-	// }
+	notification := notificationManager.Get(
+		db, user, choices.NREACTION,
+		reaction.Post, reaction.Comment, reaction.Reply,
+	)
+	if notification != nil {
+		// Send to websocket and delete notification
+		SendNotificationInSocket(c, *notification, nil, nil, "DELETED")
+	}
 
 	// Delete reaction and return response
 	db.Delete(&reaction)
@@ -363,11 +364,11 @@ func (endpoint Endpoint) CreateComment(c *fiber.Ctx) error {
 	comment := commentManager.Create(db, *user, *post, data.Text)
 
 	// Created & Send Notification
-	// if user.ID != post.AuthorID {
-	// 	notification := notificationManager.Create(db, user, "COMMENT", []uuid.UUID{post.AuthorID}, nil, comment, nil, nil)
-	// 	SendNotificationInSocket(c, notification, nil, nil)
-	// }
-	// Convert type and return comment
+	if user.ID.String() != post.AuthorID.String() {
+		notification := notificationManager.Create(db, user, choices.NCOMMENT, []models.User{post.AuthorObj}, nil, &comment, nil, nil)
+		SendNotificationInSocket(c, notification, nil, nil)
+	}
+
 	response := schemas.CommentResponseSchema{
 		ResponseSchema: SuccessResponse("Comment created"),
 		Data:           comment.Init(),
@@ -442,10 +443,10 @@ func (endpoint Endpoint) CreateReply(c *fiber.Ctx) error {
 	reply := replyManager.Create(db, *user, *comment, data.Text)
 
 	// Created & Send Notification
-	// if user.ID.String() != comment.AuthorID.String() {
-	// 	notification := notificationManager.Create(db, user, choices.NREPLY, []models.User{comment.AuthorObj}, nil, nil, &reply, nil)
-	// 	SendNotificationInSocket(c, notification, nil, nil)
-	// }
+	if user.ID.String() != comment.AuthorID.String() {
+		notification := notificationManager.Create(db, user, choices.NREPLY, []models.User{comment.AuthorObj}, nil, nil, &reply, nil)
+		SendNotificationInSocket(c, notification, nil, nil)
+	}
 
 	// Convert type and return reply
 	response := schemas.ReplyResponseSchema{
@@ -516,17 +517,16 @@ func (endpoint Endpoint) DeleteComment(c *fiber.Ctx) error {
 	}
 
 	// Remove Comment Notifications
-	// notification := notificationManager.Get(
-	// 	db, user, "COMMENT",
-	// 	nil, comment, nil,
-	// )
-	// if notification != nil {
-	// 	// Send to websocket and delete notification & comment
-	// 	SendNotificationInSocket(c, notification, &comment.Slug, nil, "DELETED")
-	// }
+	notification := notificationManager.Get(
+		db, user, choices.NCOMMENT,
+		nil, comment, nil,
+	)
+	if notification != nil {
+		// Send to websocket and delete notification & comment
+		SendNotificationInSocket(c, *notification, &comment.Slug, nil, "DELETED")
+	}
 
-	// Delete and return response
-	db.Delete(&comment)
+	// Return response
 	return c.Status(200).JSON(SuccessResponse("Comment Deleted"))
 }
 
@@ -615,16 +615,15 @@ func (endpoint Endpoint) DeleteReply(c *fiber.Ctx) error {
 	}
 
 	// Remove Reply Notifications
-	// notification := notificationManager.Get(
-	// 	db, user, "REPLY",
-	// 	nil, nil, reply,
-	// )
-	// if notification != nil {
-	// 	// Send to websocket and delete notification
-	// 	SendNotificationInSocket(c, notification, nil, &reply.Slug, "DELETED")
-	// }
+	notification := notificationManager.Get(
+		db, user, choices.NREPLY,
+		nil, nil, reply,
+	)
+	if notification != nil {
+		// Send to websocket and delete notification
+		SendNotificationInSocket(c, *notification, nil, &reply.Slug, "DELETED")
+	}
 
-	// Delete and return response
-	db.Delete(&reply)
+	// Return response
 	return c.Status(200).JSON(SuccessResponse("Reply Deleted"))
 }

@@ -31,7 +31,7 @@ func ValidateReactionFocus(focus string) *utils.ErrorResponse {
 	return &err
 }
 
-func SendNotificationInSocket(fiberCtx *fiber.Ctx, notification *models.Notification, commentSlug *string, replySlug *string, statusOpts ...string) error {
+func SendNotificationInSocket(fiberCtx *fiber.Ctx, notification models.Notification, commentSlug *string, replySlug *string, statusOpts ...string) error {
 	if os.Getenv("ENVIRONMENT") == "TESTING" {
 		return nil
 	}

@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 )
@@ -89,7 +90,7 @@ func (endpoint Endpoint) SendMessage(c *fiber.Ctx) error {
 			}
 			return c.Status(422).JSON(utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid entry", data))
 		}
-		chat = chatManager.Create(db, *user, "DM", []models.User{recipientUser})
+		chat = chatManager.Create(db, *user, choices.CDM, []models.User{recipientUser})
 	} else {
 		// Get the chat with chat id and check if the current user is the owner or the recipient
 		chat = chatManager.GetSingleUserChat(db, *user, *chatID)
@@ -278,12 +279,12 @@ func (endpoint Endpoint) DeleteMessage(c *fiber.Ctx) error {
 	chat := message.ChatObj
 	messagesCount := chatManager.GetMessagesCount(db, chat.ID)
 
-	// // Send message deletion socket
-	// SendMessageDeletionInSocket(c, chat.ID, message.ID)
+	// Send message deletion socket
+	SendMessageDeletionInSocket(c, chat.ID, message.ID)
 
 	// Delete message and chat if its the last message in the dm being deleted
-	if messagesCount == 1 && chat.Ctype == "DM" {
-		db.Delete(&chat)// Message deletes if chat gets deleted (CASCADE)
+	if messagesCount == 1 && chat.Ctype == choices.CDM {
+		db.Delete(&chat) // Message deletes if chat gets deleted (CASCADE)
 	} else {
 		db.Delete(&message)
 	}
