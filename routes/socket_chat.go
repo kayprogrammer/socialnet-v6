@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/gofiber/contrib/websocket"
-	"github.com/kayprogrammer/socialnet-v6/database"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
@@ -172,8 +171,8 @@ func broadcastChatMessage(c *websocket.Conn, mt int, groupName string, data []by
 // --------------------------------------------
 
 // Chat socket endpoint
-func ChatSocket(c *websocket.Conn) {
-	db := database.ConnectDb(cfg)
+func (ep Endpoint) ChatSocket(c *websocket.Conn) {
+	db := ep.DB
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
 	token := c.Headers("Authorization")

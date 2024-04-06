@@ -29,6 +29,7 @@ import (
 func main() {
 	cfg := config.GetConfig()
 	db := database.ConnectDb(cfg)
+	sqlDb, _ := db.DB()
 	initials.CreateInitialData(cfg, db)
 
 	app := fiber.New()
@@ -62,6 +63,6 @@ func main() {
 	})
 
 	routes.SetupRoutes(app, db)
-	// routes.SetupSockets(app)
+	defer sqlDb.Close()
 	log.Fatal(app.Listen(":8000"))
 }

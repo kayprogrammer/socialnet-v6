@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/gofiber/contrib/websocket"
-	"github.com/kayprogrammer/socialnet-v6/database"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
@@ -60,8 +59,8 @@ func broadcastNotificationMessage(db *gorm.DB, mt int, msg []byte) {
 	}
 }
 
-func NotificationSocket(c *websocket.Conn) {
-	db := database.ConnectDb(cfg)
+func (ep Endpoint) NotificationSocket(c *websocket.Conn) {
+	db := ep.DB
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
 	token := c.Headers("Authorization")

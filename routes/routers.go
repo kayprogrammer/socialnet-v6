@@ -79,6 +79,6 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	chatRouter.Post("/groups/group", endpoint.CreateGroupChat)
 
 	// Register Sockets
-	api.Get("/ws/notifications", websocket.New(NotificationSocket))
-	api.Get("/ws/chats/:id", websocket.New(ChatSocket))
+	api.Get("/ws/notifications", websocket.New(endpoint.NotificationSocket))
+	api.Get("/ws/chats/:id", websocket.New(endpoint.ChatSocket))
 }
