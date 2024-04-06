@@ -1,4 +1,4 @@
-package sockets
+package routes
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/models"
-	"github.com/kayprogrammer/socialnet-v6/routes"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm"
 )
@@ -34,7 +33,7 @@ func RemoveClient(c *websocket.Conn) {
 }
 
 type ErrorResp struct {
-	Status	string			   `json:"status"`
+	Status  string             `json:"status"`
 	Code    int                `json:"code"`
 	Type    string             `json:"type"`
 	Message string             `json:"message"`
@@ -63,7 +62,7 @@ func ValidateAuth(db *gorm.DB, token string) (*models.User, *string, *string) {
 		secret = &token
 	} else {
 		// Get User
-		userObj, err := routes.GetUser(token, db)
+		userObj, err := GetUser(token, db)
 		if err != nil {
 			errMsg = err
 		}

@@ -72,9 +72,9 @@ func (obj FriendManager) GetRequesteeAndFriendObj(db *gorm.DB, user *models.User
 	return &requestee, &friend, nil
 }
 
-// func (obj FriendManager) DropData(db *gorm.DB) {
-// 	db.Friend.Delete().ExecX(Ctx)
-// }
+func (obj FriendManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Friend{})
+}
 
 // ----------------------------------
 // NOTIFICATION MANAGEMENT
@@ -108,15 +108,15 @@ func (obj NotificationManager) ReadOne(db *gorm.DB, user *models.User, notificat
 
 func (obj NotificationManager) Create(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, receivers []models.User, post *models.Post, comment *models.Comment, reply *models.Reply, text *string) models.Notification {
 	// Create Notification
-	notification := models.Notification{Ntype: ntype, Text: text, Sender: sender, Post: post, Comment: comment, Reply: reply, Receivers: receivers}
+	notification := models.Notification{Ntype: ntype, Text: text, SenderObj: sender, SenderID: &sender.ID, Post: post, CommentID: &comment.ID, ReplyID: &reply.ID, Receivers: receivers}
 	db.Create(&notification)
 	return notification
 }
 
 func (obj NotificationManager) GetOrCreate(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, receivers []models.User, post *models.Post, comment *models.Comment, reply *models.Reply) (models.Notification, bool) {
 	created := false
-	notification := models.Notification{Sender: sender, Ntype: ntype, Post: post, Comment: comment, Reply: reply}
-	db.Preload("Sender", "Post", "Comment", "Reply").Take(&notification, notification)
+	notification := models.Notification{SenderID: &sender.ID, Ntype: ntype, PostID: &post.ID, CommentID: &comment.ID, ReplyID: &reply.ID}
+	db.Preload("SenderObj", "Post", "Comment", "Reply").Take(&notification, notification)
 	if notification.ID == nil {
 		created = true
 		// Create notification
@@ -126,7 +126,7 @@ func (obj NotificationManager) GetOrCreate(db *gorm.DB, sender *models.User, nty
 }
 
 func (obj NotificationManager) Get(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, post *models.Post, comment *models.Comment, reply *models.Reply) *models.Notification {
-	notification := models.Notification{Sender: sender, Ntype: ntype, Post: post, Comment: comment, Reply: reply}
+	notification := models.Notification{SenderID: &sender.ID, Ntype: ntype, PostID: &post.ID, CommentID: &comment.ID, ReplyID: &reply.ID}
 	db.Take(&notification, notification)
 	if notification.ID == nil {
 		return nil
@@ -152,6 +152,6 @@ func (obj NotificationManager) IsAmongReceivers(db *gorm.DB, notificationID uuid
 	return found
 }
 
-// func (obj NotificationManager) DropData(db *gorm.DB) {
-// 	db.Notification.Delete().ExecX(Ctx)
-// }
+func (obj NotificationManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Notification{})
+}

@@ -17,19 +17,87 @@ type Friend struct {
 type Notification struct {
 	BaseModel
 	SenderID  *uuid.UUID                 `gorm:"null"`
-	Sender    *User                      `gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE"`
+	SenderObj *User                      `gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE;<-:false"`
+	Sender    *UserDataSchema            `gorm:"-" json:"sender"`
 	Receivers []User                     `gorm:"many2many:notification_receivers;"`
 	Ntype     choices.NotificationChoice `gorm:"varchar(50);not null"`
-	Text      *string                    `gorm:"varchar(10000);null;"`
+	Text      *string                    `gorm:"varchar(10000);null;" json:"-"`
 	PostID    *uuid.UUID                 `gorm:"null"`
-	Post      *Post                      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	Post      *Post                      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE;<-:false"`
 	CommentID *uuid.UUID                 `gorm:"null"`
-	Comment   *Comment                   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE"`
+	Comment   *Comment                   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE;<-:false"`
 	ReplyID   *uuid.UUID                 `gorm:"null"`
-	Reply     *Reply                     `gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE"`
+	Reply     *Reply                     `gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE;<-:false"`
 	ReadBy    []User                     `gorm:"many2many:notification_read_by;"`
+
+	// Other schema display
+	PostSlug    *string `gorm:"-" json:"post_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
+	CommentSlug *string `gorm:"-" json:"comment_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
+	ReplySlug   *string `gorm:"-" json:"reply_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
+	Message     string  `gorm:"-" json:"message" example:"John Doe reacted to your post"`
+	IsRead      bool    `gorm:"-" json:"is_read" example:"true"`
 }
 
-func (n Notification) Init(userID uuid.UUID) Notification {
+func (n Notification) Init(currentUserID uuid.UUID) Notification {
+	// Set Related Data.
+	sender := n.SenderObj
+	if sender != nil {
+		senderData := UserDataSchema{}.Init(*sender)
+		n.Sender = &senderData
+	}
+
+	// Set Target slug
+	n = n.SetTargetSlug()
+	// Set Notification message
+	text := n.Text
+	if text == nil {
+		notificationMsg := n.GetMessage()
+		text = &notificationMsg
+	}
+	n.Message = *text
+
+	// Set IsRead
+	if currentUserID != nil {
+		readBy := n.ReadBy
+		for _, user := range readBy {
+			if user.ID.String() == currentUserID.String() {
+				n.IsRead = true
+				break
+			}
+		}
+	}
 	return n
+}
+
+func (n Notification) SetTargetSlug() Notification {
+	post := n.Post
+	comment := n.Comment
+	reply := n.Reply
+	if post != nil {
+		n.PostSlug = &post.Slug
+	} else if comment != nil {
+		n.CommentSlug = &comment.Slug
+	} else if reply != nil {
+		n.ReplySlug = &reply.Slug
+	}
+	return n
+
+}
+
+func (n Notification) GetMessage() string {
+	ntype := n.Ntype
+	sender := n.Sender.Name
+	message := sender + " reacted to your post"
+	if ntype == "REACTION" {
+		if n.CommentSlug != nil {
+			message = sender + " reacted to your comment"
+		} else if n.ReplySlug != nil {
+			message = sender + " reacted to your reply"
+		}
+	} else if ntype == "COMMENT" {
+		message = sender + " commented on your post"
+	} else if ntype == "REPLY" {
+		message = sender + " replied your comment"
+	}
+	return message
 }

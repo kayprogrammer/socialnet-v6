@@ -1,11 +1,15 @@
-package sockets
+package routes
 
 import (
 	"encoding/json"
 	"log"
 
 	"github.com/gofiber/contrib/websocket"
-	"github.com/google/uuid"
+	"github.com/kayprogrammer/socialnet-v6/database"
+	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/utils"
+	"github.com/pborman/uuid"
+	"gorm.io/gorm"
 )
 
 // Entry & Exit Schemas
@@ -15,7 +19,7 @@ type SocketMessageEntrySchema struct {
 }
 
 type SocketMessageExitSchema struct {
-	schemas.MessageSchema
+	models.Message
 	Status string `json:"status"`
 }
 
@@ -23,21 +27,17 @@ type SocketMessageExitSchema struct {
 
 var (
 	messageData    = SocketMessageEntrySchema{}
-	chatManager    = managers.ChatManager{}
-	userManager    = managers.UserManager{}
-	messageManager = managers.MessageManager{}
 )
 
 // Retrieve chat or user based on the given id
-func GetChatOrUser(c *websocket.Conn, db *ent.Client, user *ent.User, id string) (*ent.Chat, *ent.User) {
-	var (
-		chat    *ent.Chat
-		objUser *ent.User
-	)
+func GetChatOrUser(c *websocket.Conn, db *gorm.DB, user models.User, id string) (models.Chat, models.User) {
+	chat := models.Chat{}
+	objUser := models.User{}
+
 	if user.ID.String() != id {
 		parsedID, _ := utils.ParseUUID(id)
 		if parsedID == nil {
-			objUser = userManager.GetByUsername(db, id)
+			db.Where(models.User{Username: id}).Take(&objUser, objUser)
 		} else {
 			chat = chatManager.GetByID(db, *parsedID)
 		}
@@ -51,16 +51,16 @@ func GetChatOrUser(c *websocket.Conn, db *ent.Client, user *ent.User, id string)
 // --------------------------------------------
 
 // Validate chat existence or membership
-func ValidateChatMembership(c *websocket.Conn, db *ent.Client, user *ent.User, id string) (*int, *string, *string) {
+func ValidateChatMembership(c *websocket.Conn, db *gorm.DB, user models.User, id string) (*int, *string, *string) {
 	chat, objUser := GetChatOrUser(c, db, user, id)
-	if chat == nil && objUser == nil {
+	if chat.ID == nil && objUser.ID == nil {
 		// If no chat nor user
 		errCode := 4004
 		errType := "invalid_input"
 		errMsg := "Invalid ID"
 		return &errCode, &errType, &errMsg
 	}
-	if chat != nil && user.ID != chat.OwnerID && !chatManager.UserIsMember(chat, user) {
+	if chat.ID != nil && user.ID.String() != chat.OwnerID.String() && !chatManager.UserIsMember(chat, user) {
 		errCode := 4001
 		errType := "invalid_member"
 		errMsg := "You're not a member of this chat"
@@ -72,14 +72,14 @@ func ValidateChatMembership(c *websocket.Conn, db *ent.Client, user *ent.User, i
 // ----------------------------------------------------
 
 // Store new connection client
-func AddChatClient(c *websocket.Conn, db *ent.Client, id string) (*int, *string, *string) {
+func AddChatClient(c *websocket.Conn, db *gorm.DB, id string) (*int, *string, *string) {
 	// Validate chat ID & membership
-	user := c.Locals("user").(*ent.User)
+	user := c.Locals("user").(*models.User)
 	secret := c.Locals("secret").(*string)
 
 	if secret == nil {
 		// validate chat memership
-		errCode, errType, errMsg := ValidateChatMembership(c, db, user, id)
+		errCode, errType, errMsg := ValidateChatMembership(c, db, *user, id)
 		if errCode != nil && errType != nil && errMsg != nil {
 			return errCode, errType, errMsg
 		}
@@ -92,7 +92,7 @@ func AddChatClient(c *websocket.Conn, db *ent.Client, id string) (*int, *string,
 // ------------------------------------------
 
 // Validate data entering the socket.
-func ValidateEnteredData(c *websocket.Conn, db *ent.Client, user *ent.User, secret *string, data []byte) (*[]byte, *int, *string, *string, *map[string]string) {
+func ValidateEnteredData(c *websocket.Conn, db *gorm.DB, user *models.User, secret *string, data []byte) (*[]byte, *int, *string, *string, *map[string]string) {
 	// Ensure data is a Message data. That means it aligns with the Message schema above
 	err := json.Unmarshal(data, &messageData)
 	if err != nil {
@@ -118,21 +118,20 @@ func ValidateEnteredData(c *websocket.Conn, db *ent.Client, user *ent.User, secr
 	messageDataToReturn := data
 	if status != "DELETED" {
 		message := messageManager.GetByID(db, messageData.ID)
-		if message == nil {
+		if message.ID == nil {
 			errCode := 4004
 			errType := utils.ERR_NON_EXISTENT
 			errMsg := "Invalid message ID"
 			return nil, &errCode, &errType, &errMsg, nil
-		} else if message.SenderID != user.ID {
+		} else if message.SenderID.String() != user.ID.String() {
 			errCode := 4001
 			errType := utils.ERR_INVALID_OWNER
 			errMsg := "Message isn't yours"
 			return nil, &errCode, &errType, &errMsg, nil
 		}
-		convertedMessage := utils.ConvertStructData(message, schemas.MessageSchema{}).(*schemas.MessageSchema)
 		messageData := SocketMessageExitSchema{
-			MessageSchema: convertedMessage.Init(),
-			Status:        messageData.Status,
+			Message: message.Init(),
+			Status:  messageData.Status,
 		}
 		messageDataJson, _ := json.Marshal(messageData)
 		messageDataToReturn = []byte(messageDataJson)
@@ -152,11 +151,11 @@ func broadcastChatMessage(c *websocket.Conn, mt int, groupName string, data []by
 
 		// Only true receivers should access the data
 		if client.Locals("groupName") == groupName && secret == nil {
-			user := client.Locals("user").(*ent.User)
-			objUser := client.Locals("objUser").(*ent.User)
+			user := client.Locals("user").(*models.User)
+			objUser := client.Locals("objUser").(*models.User)
 			if objUser != nil {
 				// Ensure that reading messages from a user id can only be done by the owner
-				if user.ID == objUser.ID {
+				if user.ID.String() == objUser.ID.String() {
 					if err := client.WriteMessage(mt, data); err != nil {
 						log.Println("write:", err)
 					}
@@ -174,8 +173,9 @@ func broadcastChatMessage(c *websocket.Conn, mt int, groupName string, data []by
 
 // Chat socket endpoint
 func ChatSocket(c *websocket.Conn) {
-	db := database.ConnectDb()
-	defer db.Close()
+	db := database.ConnectDb(cfg)
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
 	token := c.Headers("Authorization")
 	chatID := c.Params("id")
 
@@ -184,7 +184,7 @@ func ChatSocket(c *websocket.Conn) {
 		entryData []byte
 		exitData  *[]byte
 		err       error
-		user      *ent.User
+		user      *models.User
 		secret    *string
 		errC      *int               // error code
 		errT      *string            // error type

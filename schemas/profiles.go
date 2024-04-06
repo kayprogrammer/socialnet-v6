@@ -42,19 +42,6 @@ type AcceptFriendRequestSchema struct {
 	Accepted bool `json:"accepted" example:"true"`
 }
 
-// type NotificationSchema struct {
-// 	Edges        	*ent.NotificationEdges 	`json:"edges,omitempty" swaggerignore:"true"`
-// 	ID				uuid.UUID				`json:"id"`
-// 	Sender			*UserDataSchema			`json:"sender"`
-// 	Ntype			string					`json:"ntype" example:"REACTION"`
-// 	Text        	*string 				`json:"text,omitempty" swaggerignore:"true"`
-// 	Message			string					`json:"message" example:"John Doe reacted to your post"`
-// 	PostSlug		*string					`json:"post_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
-// 	CommentSlug		*string					`json:"comment_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
-// 	ReplySlug		*string					`json:"reply_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
-// 	IsRead			bool					`json:"is_read" example:"true"`
-// }
-
 // func (notification NotificationSchema) Init (currentUserID *uuid.UUID) NotificationSchema {
 // 	// Set Related Data.
 // 	sender := notification.Edges.Sender
@@ -88,38 +75,7 @@ type AcceptFriendRequestSchema struct {
 // 	return notification
 // }
 
-// func (notification NotificationSchema) SetTargetSlug() NotificationSchema {
-// 	post := notification.Edges.Post
-// 	comment := notification.Edges.Comment
-// 	reply := notification.Edges.Reply
-// 	if post != nil {
-// 		notification.PostSlug = &post.Slug
-// 	} else if comment != nil {
-// 		notification.CommentSlug = &comment.Slug
-// 	} else if reply != nil {
-// 		notification.ReplySlug = &reply.Slug
-// 	}
-// 	return notification
 
-// }
-
-// func (notification NotificationSchema) GetMessage() string {
-// 	ntype := notification.Ntype
-// 	sender := notification.Sender.Name
-// 	message := sender + " reacted to your post"
-// 	if ntype == "REACTION" {
-// 		if notification.CommentSlug != nil {
-// 			message = sender + " reacted to your comment"
-// 		} else if notification.ReplySlug != nil {
-// 			message = sender + " reacted to your reply"
-// 		}
-// 	} else if ntype == "COMMENT" {
-// 		message = sender + " commented on your post"
-// 	} else if ntype == "REPLY" {
-// 		message = sender + " replied your comment"
-// 	}
-// 	return message
-// }
 
 type ReadNotificationSchema struct {
 	MarkAllAsRead bool       `json:"mark_all_as_read" example:"false"`

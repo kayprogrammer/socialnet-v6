@@ -1,13 +1,14 @@
-package sockets
+package routes
 
 import (
 	"encoding/json"
 	"log"
 
 	"github.com/gofiber/contrib/websocket"
+	"github.com/kayprogrammer/socialnet-v6/database"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
-	"github.com/kayprogrammer/socialnet-v6/schemas"
+	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm"
 )
 
@@ -49,16 +50,19 @@ func broadcastNotificationMessage(db *gorm.DB, mt int, msg []byte) {
 	// Sorry for the long note (no vex)
 	if notificationObj.Status == "DELETED" && notificationObj.Ntype != "REACTION" {
 		if notificationObj.CommentSlug != nil {
-			db.Comment.Delete(&models.Comment{FeedAbstract models.FeedAbstract{Slug: *notificationObj.CommentSlug}}).Where(comment.Slug()).ExecX(managers.Ctx)
+			var commentSlug string = *notificationObj.CommentSlug
+			db.Delete(&models.Comment{}, "slug = ?", commentSlug)
 		} else if notificationObj.ReplySlug != nil {
-			db.Reply.Delete().Where(reply.Slug(*notificationObj.ReplySlug)).ExecX(managers.Ctx)
+			var replySlug string = *notificationObj.ReplySlug
+			db.Delete(&models.Reply{}, "slug = ?", replySlug)
 		}
 	}
 }
 
 func NotificationSocket(c *websocket.Conn) {
-	db := database.ConnectDb()
-	defer db.Close()
+	db := database.ConnectDb(cfg)
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
 	token := c.Headers("Authorization")
 
 	var (
