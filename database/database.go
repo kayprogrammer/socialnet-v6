@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func ConnectDb(cfg config.Config) *gorm.DB {
+func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
 	dsnTemplate := "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s"
 	dsn := fmt.Sprintf(
 		dsnTemplate,
@@ -28,47 +28,50 @@ func ConnectDb(cfg config.Config) *gorm.DB {
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,
 	})
-
 	if err != nil {
 		log.Fatal("Failed to connect to the database! \n", err.Error())
 		os.Exit(2)
 	}
 	log.Println("Connected to the database successfully")
 	db.Logger = logger.Default.LogMode(logger.Info)
-	log.Println("Running Migrations")
 
-	// Add UUID extension
-	result := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-	if result.Error != nil {
-		log.Fatal("failed to create extension: " + result.Error.Error())
+	if len(logs) == 0 { 
+		// When extra parameter is passed, don't do the following (from sockets)
+		log.Println("Running Migrations")
+
+		// Add UUID extension
+		result := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+		if result.Error != nil {
+			log.Fatal("failed to create extension: " + result.Error.Error())
+		}
+
+		// Add Migrations
+		db.AutoMigrate(
+			// general
+			&models.SiteDetail{},
+
+			// accounts
+			&models.Country{},
+			&models.Region{},
+			&models.City{},
+			&models.User{},
+			&models.Otp{},
+
+			// feed
+			&models.Post{},
+			&models.Comment{},
+			&models.Reply{},
+			&models.Reaction{},
+
+			// profiles
+			&models.Friend{},
+			&models.Notification{},
+
+			// chat
+			&models.Chat{},
+			&models.Message{},
+		)
+		db.Exec("CREATE UNIQUE INDEX unique_requester_requestee ON friends(LEAST(requester_id, requestee_id), GREATEST(requester_id, requestee_id))")
 	}
-
-	// Add Migrations
-	db.AutoMigrate(
-		// general
-		&models.SiteDetail{},
-
-		// accounts
-		&models.Country{},
-		&models.Region{},
-		&models.City{},
-		&models.User{},
-		&models.Otp{},
-
-		// feed
-		&models.Post{},
-		&models.Comment{},
-		&models.Reply{},
-		&models.Reaction{},
-
-		// profiles
-		&models.Friend{},
-		&models.Notification{},
-
-		// chat
-		&models.Chat{},
-		&models.Message{},
-	)
-	db.Exec("CREATE UNIQUE INDEX unique_requester_requestee ON friends(LEAST(requester_id, requestee_id), GREATEST(requester_id, requestee_id))")
 	return db
 }

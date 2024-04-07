@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/gofiber/contrib/websocket"
-	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"gorm.io/gorm"
@@ -58,7 +57,7 @@ func ValidateAuth(db *gorm.DB, token string) (*models.User, *string, *string) {
 	if len(token) < 1 {
 		err := "Auth bearer not set"
 		errMsg = &err
-	} else if token == config.GetConfig().SocketSecret {
+	} else if token == cfg.SocketSecret {
 		secret = &token
 	} else {
 		// Get User

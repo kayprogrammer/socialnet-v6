@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
@@ -246,7 +248,7 @@ func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
 			reaction.Comment,
 			reaction.Reply,
 		)
-
+		log.Println(created)
 		if created {
 			SendNotificationInSocket(c, notification, nil, nil)
 		}

@@ -108,15 +108,22 @@ func (obj NotificationManager) ReadOne(db *gorm.DB, user *models.User, notificat
 
 func (obj NotificationManager) Create(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, receivers []models.User, post *models.Post, comment *models.Comment, reply *models.Reply, text *string) models.Notification {
 	// Create Notification
-	notification := models.Notification{Ntype: ntype, Text: text, SenderObj: sender, SenderID: &sender.ID, Post: post, CommentID: &comment.ID, ReplyID: &reply.ID, Receivers: receivers}
+	notification := models.Notification{Ntype: ntype, Text: text, SenderObj: sender, SenderID: &sender.ID, Post: post, Receivers: receivers}
+	if post != nil {
+		notification.PostID = &post.ID
+	} else if comment != nil {
+		notification.CommentID = &comment.ID
+	} else if reply != nil {
+		notification.ReplyID = &reply.ID
+	}
 	db.Create(&notification)
 	return notification
 }
 
 func (obj NotificationManager) GetOrCreate(db *gorm.DB, sender *models.User, ntype choices.NotificationChoice, receivers []models.User, post *models.Post, comment *models.Comment, reply *models.Reply) (models.Notification, bool) {
 	created := false
-	notification := models.Notification{SenderID: &sender.ID, Ntype: ntype, PostID: &post.ID, CommentID: &comment.ID, ReplyID: &reply.ID}
-	db.Preload("SenderObj", "Post", "Comment", "Reply").Take(&notification, notification)
+	notification := models.Notification{SenderID: &sender.ID, Ntype: ntype, Post: post, Comment: comment, Reply: reply}
+	db.Joins("SenderObj").Joins("SenderObj.AvatarObj").Joins("Post").Joins("Comment").Joins("Reply").Take(&notification, notification)
 	if notification.ID == nil {
 		created = true
 		// Create notification

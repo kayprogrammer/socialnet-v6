@@ -251,7 +251,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 			return nil, nil, errCode, errData
 		}
 		focusID = &post.ID
-		q = q.Where(models.Reaction{Post: post})
+		q = q.Where(models.Reaction{PostID: &post.ID})
 		targetedObjAuthor = &post.AuthorObj
 	} else if focus == "COMMENT" {
 		// Get Comment Object and Query reactions for the comment
