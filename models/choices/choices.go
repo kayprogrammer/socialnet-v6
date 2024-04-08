@@ -33,3 +33,11 @@ const (
 	CDM  ChatTypeChoice = "DM"
 	CGROUP ChatTypeChoice = "GROUP"
 )
+
+type FocusTypeChoice string
+
+const (
+	FTPOST FocusTypeChoice = "POST"
+	FTCOMMENT FocusTypeChoice = "COMMENT"
+	FTREPLY FocusTypeChoice = "REPLY"
+)

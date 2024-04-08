@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
@@ -169,10 +167,11 @@ var reactionManager = managers.ReactionManager{}
 // @Router /feed/reactions/{focus}/{slug} [get]
 func (endpoint Endpoint) RetrieveReactions(c *fiber.Ctx) error {
 	db := endpoint.DB
-	focus := c.Params("focus")
+	focusParam := c.Params("focus")
 	slug := c.Params("slug")
 
 	// Validate Focus
+	focus := choices.FocusTypeChoice(focusParam)
 	err := ValidateReactionFocus(focus)
 	if err != nil {
 		return c.Status(404).JSON(err)
@@ -210,11 +209,12 @@ func (endpoint Endpoint) RetrieveReactions(c *fiber.Ctx) error {
 // @Security BearerAuth
 func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
 	db := endpoint.DB
-	focus := c.Params("focus")
+	focusParam := c.Params("focus")
 	slug := c.Params("slug")
 	user := RequestUser(c)
 
 	// Validate Focus
+	focus := choices.FocusTypeChoice(focusParam)
 	err := ValidateReactionFocus(focus)
 	if err != nil {
 		return c.Status(404).JSON(err)
@@ -248,7 +248,6 @@ func (endpoint Endpoint) CreateReaction(c *fiber.Ctx) error {
 			reaction.Comment,
 			reaction.Reply,
 		)
-		log.Println(created)
 		if created {
 			SendNotificationInSocket(c, notification, nil, nil)
 		}

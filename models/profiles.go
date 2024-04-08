@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/pborman/uuid"
+	"gorm.io/gorm"
 )
 
 type Friend struct {
@@ -16,19 +17,19 @@ type Friend struct {
 
 type Notification struct {
 	BaseModel
-	SenderID  *uuid.UUID                 `gorm:"null"`
-	SenderObj *User                      `gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE;<-:false"`
+	SenderID  *uuid.UUID                 `gorm:"null" json:"-"`
+	SenderObj *User                      `gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE;<-:false" json:"-"`
 	Sender    *UserDataSchema            `gorm:"-" json:"sender"`
-	Receivers []User                     `gorm:"many2many:notification_receivers;"`
-	Ntype     choices.NotificationChoice `gorm:"varchar(50);not null"`
+	Receivers []User                     `gorm:"many2many:notification_receivers;" json:"-"`
+	Ntype     choices.NotificationChoice `json:"ntype" gorm:"varchar(50);not null"`
 	Text      *string                    `gorm:"varchar(10000);null;" json:"-"`
-	PostID    *uuid.UUID                 `gorm:"null"`
-	Post      *Post                      `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE;<-:false"`
-	CommentID *uuid.UUID                 `gorm:"null"`
-	Comment   *Comment                   `gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE;<-:false"`
-	ReplyID   *uuid.UUID                 `gorm:"null"`
-	Reply     *Reply                     `gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE;<-:false"`
-	ReadBy    []User                     `gorm:"many2many:notification_read_by;"`
+	PostID    *uuid.UUID                 `json:"-" gorm:"null"`
+	Post      *Post                      `json:"-" gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE;<-:false"`
+	CommentID *uuid.UUID                 `json:"-" gorm:"null"`
+	Comment   *Comment                   `json:"-" gorm:"foreignKey:CommentID;constraint:OnDelete:CASCADE;<-:false"`
+	ReplyID   *uuid.UUID                 `json:"-" gorm:"null"`
+	Reply     *Reply                     `json:"-" gorm:"foreignKey:ReplyID;constraint:OnDelete:CASCADE;<-:false"`
+	ReadBy    []User                     `json:"-" gorm:"many2many:notification_read_by;"`
 
 	// Other schema display
 	PostSlug    *string `gorm:"-" json:"post_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
@@ -36,6 +37,11 @@ type Notification struct {
 	ReplySlug   *string `gorm:"-" json:"reply_slug" example:"john-doe-d10dde64-a242-4ed0-bd75-4c759644b3a6"`
 	Message     string  `gorm:"-" json:"message" example:"John Doe reacted to your post"`
 	IsRead      bool    `gorm:"-" json:"is_read" example:"true"`
+}
+
+func (n Notification) BeforeDelete (tx *gorm.DB) (err error) {
+	tx.Model(n).Association("Receivers").Clear()
+	return
 }
 
 func (n Notification) Init(currentUserID uuid.UUID) Notification {

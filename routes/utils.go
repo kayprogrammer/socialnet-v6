@@ -9,6 +9,7 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
@@ -22,7 +23,7 @@ func RequestUser(c *fiber.Ctx) *models.User {
 	return c.Locals("user").(*models.User)
 }
 
-func ValidateReactionFocus(focus string) *utils.ErrorResponse {
+func ValidateReactionFocus(focus choices.FocusTypeChoice) *utils.ErrorResponse {
 	switch focus {
 	case "POST", "COMMENT", "REPLY":
 		return nil
@@ -45,7 +46,7 @@ func SendNotificationInSocket(fiberCtx *fiber.Ctx, notification models.Notificat
 	if fiberCtx.Secure() {
 		webSocketScheme = "wss://"
 	}
-	uri := webSocketScheme + fiberCtx.Hostname() + "/api/v4/ws/notifications/"
+	uri := webSocketScheme + fiberCtx.Hostname() + "/api/v6/ws/notifications/"
 	notificationData := SocketNotificationSchema{
 		Notification: models.Notification{BaseModel: models.BaseModel{ID: notification.ID}, Ntype: notification.Ntype, CommentSlug: commentSlug, ReplySlug: replySlug},
 		Status:             status,
@@ -95,7 +96,7 @@ func SendMessageDeletionInSocket(fiberCtx *fiber.Ctx, chatID uuid.UUID, messageI
 	if fiberCtx.Secure() {
 		webSocketScheme = "wss://"
 	}
-	uri := webSocketScheme + fiberCtx.Hostname() + "/api/v4/ws/chats/" + chatID.String()
+	uri := webSocketScheme + fiberCtx.Hostname() + "/api/v6/ws/chats/" + chatID.String()
 	chatData := SocketMessageEntrySchema{
 		ID:     messageID,
 		Status: "DELETED",

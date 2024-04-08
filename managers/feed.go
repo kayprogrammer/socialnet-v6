@@ -48,9 +48,9 @@ func (obj PostManager) Create(db *gorm.DB, author models.User, postData schemas.
 
 func (obj PostManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*models.Post, *int, *utils.ErrorResponse) {
 	post := models.Post{FeedAbstract: models.FeedAbstract{Slug: slug}}
-	q := db
+	q := db.Scopes(AuthorReactionScope)
 	if len(opts) > 0 { // Detailed param provided.
-		q = db.Scopes(AuthorReactionScope).Preload("Comments")
+		q = db.Preload("Comments")
 	}
 	q.Take(&post, post)
 	if post.ID == nil {
@@ -178,17 +178,17 @@ func UserAvatarReactionScope(db *gorm.DB) *gorm.DB {
 type ReactionManager struct {
 }
 
-func (obj ReactionManager) GetReactionsQueryset(db *gorm.DB, fiberCtx *fiber.Ctx, focus string, slug string) ([]models.Reaction, *int, *utils.ErrorResponse) {
+func (obj ReactionManager) GetReactionsQueryset(db *gorm.DB, fiberCtx *fiber.Ctx, focus choices.FocusTypeChoice, slug string) ([]models.Reaction, *int, *utils.ErrorResponse) {
 	reactions := []models.Reaction{}
 	q := db.Scopes(UserAvatarReactionScope)
-	if focus == "POST" {
+	if focus == choices.FTPOST {
 		// Get Post Object and Query reactions for the post
 		post, errCode, errData := PostManager{}.GetBySlug(db, slug)
 		if errCode != nil {
 			return nil, errCode, errData
 		}
 		q = q.Where(models.Reaction{Post: post})
-	} else if focus == "COMMENT" {
+	} else if focus == choices.FTCOMMENT {
 		// Get Comment Object and Query reactions for the comment
 		comment, errCode, errData := CommentManager{}.GetBySlug(db, slug)
 		if errCode != nil {
@@ -213,72 +213,81 @@ func (obj ReactionManager) GetReactionsQueryset(db *gorm.DB, fiberCtx *fiber.Ctx
 	return reactions, nil, nil
 }
 
-func (obj ReactionManager) Update(db *gorm.DB, reaction models.Reaction, focus string, id uuid.UUID, rtype choices.ReactionChoice) models.Reaction {
+func (obj ReactionManager) Update(db *gorm.DB, reaction models.Reaction, focus choices.FocusTypeChoice, post *models.Post, comment *models.Comment, reply *models.Reply, rtype choices.ReactionChoice) models.Reaction {
 	reaction.Rtype = rtype
-	if focus == "POST" {
-		reaction.PostID = &id
-	} else if focus == "COMMENT" {
-		reaction.CommentID = &id
+	if focus == choices.FTPOST {
+		reaction.PostID = &post.ID
+		reaction.Post = post
+	} else if focus == choices.FTCOMMENT {
+		reaction.CommentID = &comment.ID
+		reaction.Comment = comment
 	} else {
-		reaction.ReplyID = &id
+		reaction.ReplyID = &reply.ID
+		reaction.Reply = reply
 	}
 	db.Save(&reaction)
 	return reaction
 }
 
-func (obj ReactionManager) Create(db *gorm.DB, user models.User, focus string, focusID uuid.UUID, rtype choices.ReactionChoice) models.Reaction {
+func (obj ReactionManager) Create(db *gorm.DB, user models.User, focus choices.FocusTypeChoice, post *models.Post, comment *models.Comment, reply *models.Reply, rtype choices.ReactionChoice) models.Reaction {
 	reaction := models.Reaction{UserObj: user, UserID: user.ID, Rtype: rtype}
-	if focus == "POST" {
-		reaction.PostID = &focusID
-	} else if focus == "COMMENT" {
-		reaction.CommentID = &focusID
+	if focus == choices.FTPOST {
+		reaction.PostID = &post.ID
+		reaction.Post = post
+	} else if focus == choices.FTCOMMENT {
+		reaction.CommentID = &comment.ID
+		reaction.Comment = comment
 	} else {
-		reaction.ReplyID = &focusID
+		reaction.ReplyID = &reply.ID
+		reaction.Reply = reply
 	}
 	db.Create(&reaction)
 	return reaction
 }
 
-func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus string, slug string, rtype choices.ReactionChoice) (*models.Reaction, *models.User, *int, *utils.ErrorResponse) {
+func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus choices.FocusTypeChoice, slug string, rtype choices.ReactionChoice) (*models.Reaction, *models.User, *int, *utils.ErrorResponse) {
 	q := db.Scopes(UserAvatarReactionScope)
-	var focusID *uuid.UUID
+	var post *models.Post
+	var comment *models.Comment
+	var reply *models.Reply
+
 	var targetedObjAuthor *models.User
 	reaction := models.Reaction{}
-	if focus == "POST" {
+	if focus == choices.FTPOST {
 		// Get Post Object and Query reactions for the post
-		post, errCode, errData := PostManager{}.GetBySlug(db, slug, true)
+		postObj, errCode, errData := PostManager{}.GetBySlug(db, slug, true)
 		if errCode != nil {
 			return nil, nil, errCode, errData
 		}
-		focusID = &post.ID
+		post = postObj
 		q = q.Where(models.Reaction{PostID: &post.ID})
 		targetedObjAuthor = &post.AuthorObj
-	} else if focus == "COMMENT" {
+	} else if focus == choices.FTCOMMENT {
 		// Get Comment Object and Query reactions for the comment
-		comment, errCode, errData := CommentManager{}.GetBySlug(db, slug, true)
+		commentObj, errCode, errData := CommentManager{}.GetBySlug(db, slug, true)
 		if errCode != nil {
 			return nil, nil, errCode, errData
 		}
-		focusID = &comment.ID
-		q = q.Where(models.Reaction{Comment: comment})
+		comment = commentObj
+		q = q.Where(models.Reaction{CommentID: &comment.ID})
 		targetedObjAuthor = &comment.AuthorObj
 	} else {
 		// Get Reply Object and Query reactions for the reply
-		reply, errCode, errData := ReplyManager{}.GetBySlug(db, slug, true)
+		replyObj, errCode, errData := ReplyManager{}.GetBySlug(db, slug, true)
 		if errCode != nil {
 			return nil, nil, errCode, errData
 		}
-		focusID = &reply.ID
-		q = q.Where(models.Reaction{Reply: reply})
+		reply = replyObj
+		q = q.Where(models.Reaction{ReplyID: &reply.ID})
 		targetedObjAuthor = &reply.AuthorObj
 	}
 	q.Take(&reaction, reaction)
 	if reaction.ID == nil {
 		// Create reaction
-		reaction = obj.Create(db, user, focus, *focusID, rtype)
+		reaction = obj.Create(db, user, focus, post, comment, reply, rtype)
 	} else {
 		// Update
-		reaction = obj.Update(db, reaction, focus, *focusID, rtype)
+		reaction = obj.Update(db, reaction, focus, post, comment, reply, rtype)
 	}
 
 	return &reaction, targetedObjAuthor, nil, nil
@@ -286,7 +295,7 @@ func (obj ReactionManager) UpdateOrCreate(db *gorm.DB, user models.User, focus s
 
 func (obj ReactionManager) GetByID(db *gorm.DB, id *uuid.UUID) (*models.Reaction, *int, *utils.ErrorResponse) {
 	reaction := models.Reaction{}
-	db.Scopes(UserAvatarReactionScope).Take(&reaction, *id)
+	db.Scopes(UserAvatarReactionScope).Joins("Post").Joins("Comment").Joins("Reply").Take(&reaction, *id)
 	if reaction.ID == nil {
 		statusCode := 404
 		errData := utils.RequestErr(utils.ERR_NON_EXISTENT, "Reaction does not exist")
