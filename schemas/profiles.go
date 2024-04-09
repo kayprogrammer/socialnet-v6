@@ -42,41 +42,6 @@ type AcceptFriendRequestSchema struct {
 	Accepted bool `json:"accepted" example:"true"`
 }
 
-// func (notification NotificationSchema) Init (currentUserID *uuid.UUID) NotificationSchema {
-// 	// Set Related Data.
-// 	sender := notification.Edges.Sender
-// 	if sender != nil {
-// 		senderData := UserDataSchema{}.Init(sender)
-// 		notification.Sender = &senderData
-// 	}
-
-// 	// Set Target slug
-// 	notification = notification.SetTargetSlug()
-// 	// Set Notification message
-// 	text := notification.Text
-// 	if text == nil {
-// 		notificationMsg := notification.GetMessage()
-// 		text = &notificationMsg
-// 	}
-// 	notification.Message = *text
-// 	notification.Text = nil // Omit text
-
-// 	// Set IsRead
-// 	if currentUserID != nil {
-// 		readBy := notification.Edges.ReadBy
-// 		for _, user := range readBy {
-// 			if user.ID == *currentUserID {
-// 				notification.IsRead = true
-// 				break
-// 			}
-// 		}
-// 	}
-// 	notification.Edges = nil // Omit edges
-// 	return notification
-// }
-
-
-
 type ReadNotificationSchema struct {
 	MarkAllAsRead bool       `json:"mark_all_as_read" example:"false"`
 	ID            *uuid.UUID `json:"id" validate:"required_if=MarkAllAsRead false,omitempty" example:"d10dde64-a242-4ed0-bd75-4c759644b3a6"`

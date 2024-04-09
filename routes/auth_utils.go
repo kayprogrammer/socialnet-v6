@@ -81,7 +81,7 @@ func DecodeAccessToken(token string, db *gorm.DB) (*models.User, *string) {
 	}
 	user := models.User{Access: &token}
 	// Fetch User model object
-	result := db.Where(user).Preload("CityObj").Preload("CityObj.RegionObj").Preload("CityObj.CountryObj").Preload("AvatarObj").Take(&user, claims.UserId)
+	result := db.Where(user).Joins("CityObj").Joins("CityObj.RegionObj").Joins("CityObj.CountryObj").Joins("AvatarObj").Take(&user, claims.UserId)
 	if result.Error != nil {
 		return nil, &tokenErr
 	}

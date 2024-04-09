@@ -135,7 +135,7 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 		errData := utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data)
 		return nil, &errData
 	}
-	db.Model(&chat).Association("UserObjs").Append(&usersToAdd)
+	db.Model(&chat).Omit("UserObjs.*").Association("UserObjs").Append(&usersToAdd)
 	db.Model(&chat).Association("UserObjs").Delete(&usernamesToRemove)
 	return chat, nil
 }

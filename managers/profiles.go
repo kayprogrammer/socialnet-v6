@@ -92,19 +92,19 @@ func (obj NotificationManager) GetQueryset(db *gorm.DB, userID uuid.UUID) []mode
 
 func (obj NotificationManager) MarkAsRead(db *gorm.DB, user *models.User) {
 	notifications := []models.Notification{}
-	db.Model(&user).Find(&notifications, "NotificationsReceived")
-	db.Model(&user).Association("NotificationsRead").Append(&notifications)
+	db.Model(&user).Association("NotificationsReceived").Find(&notifications)
+	db.Model(&user).Omit("NotificationsRead.*").Association("NotificationsRead").Append(&notifications)
 }
 
 func (obj NotificationManager) ReadOne(db *gorm.DB, user *models.User, notificationID uuid.UUID) *utils.ErrorResponse {
 	notification := models.Notification{}
-	db.Model(&user).Take(&notification, notificationID, "NotificationsReceived")
+	db.Model(&user).Association("NotificationsReceived").Find(&notification, notificationID)
 
 	if notification.ID == nil {
 		errData := utils.RequestErr(utils.ERR_NON_EXISTENT, "User has no notification with that ID")
 		return &errData
 	}
-	db.Model(&user).Association("NotificationsRead").Append(&notification)
+	db.Model(&user).Omit("NotificationsRead.*").Association("NotificationsRead").Append(&notification)
 	return nil
 }
 
