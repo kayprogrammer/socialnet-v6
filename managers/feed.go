@@ -14,8 +14,12 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func AuthorAvatarScope(db *gorm.DB) *gorm.DB {
+	return db.Joins("AuthorObj").Joins("AuthorObj.AvatarObj")
+}
+
 func AuthorReactionScope(db *gorm.DB) *gorm.DB {
-	return db.Joins("AuthorObj").Joins("AuthorObj.AvatarObj").Preload("Reactions")
+	return db.Scopes(AuthorAvatarScope).Preload("Reactions")
 }
 
 // ----------------------------------
@@ -84,9 +88,9 @@ type CommentManager struct {
 
 func (obj CommentManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*models.Comment, *int, *utils.ErrorResponse) {
 	comment := models.Comment{FeedAbstract: models.FeedAbstract{Slug: slug}}
-	q := db
+	q := db.Scopes(AuthorAvatarScope)
 	if len(opts) > 0 { // Detailed param provided.
-		q = q.Scopes(AuthorReactionScope).Preload("Replies").Preload("Replies.AuthorObj").Preload("Replies.AuthorObj.AvatarObj")
+		q = q.Preload("Reactions").Preload("Replies").Preload("Replies.AuthorObj").Preload("Replies.AuthorObj.AvatarObj")
 	}
 	q.Take(&comment, comment)
 	if comment.ID == nil {

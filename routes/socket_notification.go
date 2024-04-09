@@ -35,6 +35,7 @@ func broadcastNotificationMessage(db *gorm.DB, mt int, msg []byte) {
 		json.Unmarshal(msg, &notificationObj)
 		// Ensure user is a valid recipient of this notification
 		userIsAmongReceiver := notificationManager.IsAmongReceivers(db, notificationObj.ID, user.ID)
+		log.Println("Isa", userIsAmongReceiver)
 		if userIsAmongReceiver {
 			if err := client.WriteMessage(mt, msg); err != nil {
 				log.Println("write:", err)
@@ -46,10 +47,11 @@ func broadcastNotificationMessage(db *gorm.DB, mt int, msg []byte) {
 	// But then the notification will be deleted alongside (cos of CASCADE relationship) before the notification socket will be sent
 	// Which will prevent the user from seeing the real time notification cos the IsAmongReceivers won't work with an already deleted notifiation
 	// To prevent this you can just set the relationship to SetNull, then delete notification here, and delete comment & reply in the view.
-	// The only drawback I can think of concerning the below method is that if by any means there was an issue with the socket, the stuff won't get deleted.
+	// The only drawback I can think of concerning the below method is that if by any means there was an issue with the socket, the stuff won't get deleted (will probably implement a better solution in another version of this project).
 	// Omo na wahala be that oh. But anyway, just go ahead with the SetNull whatever. I'm too lazy to change anything now.
 	// Sorry for the long note (no vex)
 	if notificationObj.Status == "DELETED" && notificationObj.Ntype != choices.NREACTION {
+		db.Delete(&notificationObj.Notification)
 		if notificationObj.CommentSlug != nil {
 			var commentSlug string = *notificationObj.CommentSlug
 			db.Delete(&models.Comment{}, "slug = ?", commentSlug)
