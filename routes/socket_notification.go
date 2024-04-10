@@ -35,7 +35,6 @@ func broadcastNotificationMessage(db *gorm.DB, mt int, msg []byte) {
 		json.Unmarshal(msg, &notificationObj)
 		// Ensure user is a valid recipient of this notification
 		userIsAmongReceiver := notificationManager.IsAmongReceivers(db, notificationObj.ID, user.ID)
-		log.Println("Isa", userIsAmongReceiver)
 		if userIsAmongReceiver {
 			if err := client.WriteMessage(mt, msg); err != nil {
 				log.Println("write:", err)

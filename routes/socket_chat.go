@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/gofiber/contrib/websocket"
+	"github.com/kayprogrammer/socialnet-v6/database"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/pborman/uuid"
@@ -59,6 +60,7 @@ func ValidateChatMembership(c *websocket.Conn, db *gorm.DB, user models.User, id
 		errMsg := "Invalid ID"
 		return &errCode, &errType, &errMsg
 	}
+	log.Println(user.ID, " ", chat.OwnerID)
 	if chat.ID != nil && user.ID.String() != chat.OwnerID.String() && !chatManager.UserIsMember(chat, user) {
 		errCode := 4001
 		errType := "invalid_member"
@@ -172,7 +174,7 @@ func broadcastChatMessage(c *websocket.Conn, mt int, groupName string, data []by
 
 // Chat socket endpoint
 func (ep Endpoint) ChatSocket(c *websocket.Conn) {
-	db := ep.DB
+	db := database.ConnectDb(cfg, true)
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
 	token := c.Headers("Authorization")
