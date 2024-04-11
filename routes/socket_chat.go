@@ -26,13 +26,13 @@ type SocketMessageExitSchema struct {
 // ---------------------------
 
 var (
-	messageData    = SocketMessageEntrySchema{}
+	messageData = SocketMessageEntrySchema{}
 )
 
 // Retrieve chat or user based on the given id
-func GetChatOrUser(c *websocket.Conn, db *gorm.DB, user models.User, id string) (models.Chat, models.User) {
+func GetChatOrUser(c *websocket.Conn, db *gorm.DB, user models.User, id string) (models.Chat, *models.User) {
 	chat := models.Chat{}
-	objUser := models.User{}
+	var objUser *models.User = nil
 
 	if user.ID.String() != id {
 		parsedID, _ := utils.ParseUUID(id)
@@ -42,7 +42,7 @@ func GetChatOrUser(c *websocket.Conn, db *gorm.DB, user models.User, id string) 
 			chat = chatManager.GetByID(db, *parsedID)
 		}
 	} else {
-		objUser = user // Message is sent to self
+		objUser = &user // Message is sent to self
 	}
 	c.Locals("objUser", objUser)
 	return chat, objUser
@@ -53,6 +53,7 @@ func GetChatOrUser(c *websocket.Conn, db *gorm.DB, user models.User, id string) 
 // Validate chat existence or membership
 func ValidateChatMembership(c *websocket.Conn, db *gorm.DB, user models.User, id string) (*int, *string, *string) {
 	chat, objUser := GetChatOrUser(c, db, user, id)
+
 	if chat.ID == nil && objUser.ID == nil {
 		// If no chat nor user
 		errCode := 4004
@@ -60,7 +61,6 @@ func ValidateChatMembership(c *websocket.Conn, db *gorm.DB, user models.User, id
 		errMsg := "Invalid ID"
 		return &errCode, &errType, &errMsg
 	}
-	log.Println(user.ID, " ", chat.OwnerID)
 	if chat.ID != nil && user.ID.String() != chat.OwnerID.String() && !chatManager.UserIsMember(chat, user) {
 		errCode := 4001
 		errType := "invalid_member"
@@ -85,6 +85,7 @@ func AddChatClient(c *websocket.Conn, db *gorm.DB, id string) (*int, *string, *s
 			return errCode, errType, errMsg
 		}
 	}
+
 	// Add client
 	AddClient(c)
 	return nil, nil, nil
@@ -200,7 +201,6 @@ func (ep Endpoint) ChatSocket(c *websocket.Conn) {
 	}
 	c.Locals("user", user)
 	c.Locals("secret", secret)
-
 	// Set Group name
 	groupName := "chat_" + chatID
 	c.Locals("groupName", groupName)
@@ -211,7 +211,6 @@ func (ep Endpoint) ChatSocket(c *websocket.Conn) {
 		ReturnError(c, *errT, *errM, *errC)
 		return
 	}
-
 	// Remove the client from the list when the handler exits
 	defer RemoveClient(c)
 
