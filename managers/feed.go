@@ -76,9 +76,9 @@ func (obj PostManager) Update(db *gorm.DB, post *models.Post, postData schemas.P
 	return post
 }
 
-// func (obj PostManager) DropData(db *gorm.DB) {
-// 	climodels.Post.Delete().ExecX(Ctx)
-// }
+func (obj PostManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Post{})
+}
 
 // ----------------------------------
 // COMMENT MANAGEMENT
@@ -125,9 +125,9 @@ func (obj CommentManager) Update(db *gorm.DB, comment models.Comment, author *mo
 	return comment
 }
 
-// func (obj CommentManager) DropData(db *gorm.DB) {
-// 	climodels.Comment.Delete().ExecX(Ctx)
-// }
+func (obj CommentManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Comment{})
+}
 
 // ----------------------------------
 // REPLY MANAGEMENT
@@ -168,9 +168,9 @@ func (obj ReplyManager) Update(db *gorm.DB, reply models.Reply, author *models.U
 	return reply
 }
 
-// func (obj ReplyManager) DropData(db *gorm.DB) {
-// 	climodels.Reply.Delete().ExecX(Ctx)
-// }
+func (obj ReplyManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Reply{})
+}
 
 // ----------------------------------
 // REACTIONS MANAGEMENT
@@ -308,6 +308,6 @@ func (obj ReactionManager) GetByID(db *gorm.DB, id *uuid.UUID) (*models.Reaction
 	return &reaction, nil, nil
 }
 
-// func (obj ReactionManager) DropData(db *gorm.DB) {
-// 	climodels.Reaction.Delete().ExecX(Ctx)
-// }
+func (obj ReactionManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Reaction{})
+}

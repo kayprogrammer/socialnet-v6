@@ -252,6 +252,6 @@ func (obj MessageManager) GetByID(db *gorm.DB, id uuid.UUID) models.Message {
 	return message
 }
 
-// func (obj MessageManager) DropData(db *gorm.DB) {
-// 	client.Message.Delete().ExecX(Ctx)
-// }
+func (obj MessageManager) DropData(db *gorm.DB) {
+	db.Delete(&models.Message{})
+}
