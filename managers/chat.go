@@ -1,8 +1,6 @@
 package managers
 
 import (
-	"log"
-
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
@@ -111,13 +109,15 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 	expectedUserTotal := len(originalExistingUserIDs)
 	usersToAdd := []models.User{}
 	if usernamesToAdd != nil {
-		db.Where("username IN ?", usernamesToAdd).Where(
-			db.Not("id IN ?", originalExistingUserIDs).Or(models.User{BaseModel: models.BaseModel{ID: chat.OwnerID}}),
-		).Find(&usersToAdd)
+		var usernamesToAdd []string = *usernamesToAdd
+		db.Where("username IN ?", usernamesToAdd).Not(
+			db.Where("users.id = ?", chat.OwnerID).Or("users.id IN ?", originalExistingUserIDs),
+		).Joins("AvatarObj").Find(&usersToAdd)
 		expectedUserTotal += len(usersToAdd)
 	}
 	usersToRemove := []models.User{}
 	if usernamesToRemove != nil {
+		var usernamesToRemove []string = *usernamesToRemove
 		if len(originalExistingUserIDs) < 1 {
 			data := map[string]string{
 				"usernames_to_remove": "No users to remove",
@@ -125,7 +125,7 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 			errData := utils.RequestErr(utils.ERR_INVALID_ENTRY, "Invalid Entry", data)
 			return nil, &errData
 		}
-		db.Where("username IN ?", usernamesToRemove).Not(models.User{BaseModel: models.BaseModel{ID: chat.OwnerID}}).Find(&usernamesToRemove, originalExistingUserIDs)
+		db.Where("username IN ?", usernamesToRemove).Where("id IN ?", originalExistingUserIDs).Where("id <> ?", chat.OwnerID).Find(&usersToRemove)
 		expectedUserTotal -= len(usersToRemove)
 	}
 	if expectedUserTotal > 99 {
@@ -136,7 +136,7 @@ func (obj ChatManager) UsernamesToAddAndRemoveValidations(db *gorm.DB, chat *mod
 		return nil, &errData
 	}
 	db.Model(&chat).Omit("UserObjs.*").Association("UserObjs").Append(&usersToAdd)
-	db.Model(&chat).Association("UserObjs").Delete(&usernamesToRemove)
+	db.Model(&chat).Association("UserObjs").Delete(&usersToRemove)
 	return chat, nil
 }
 
@@ -161,7 +161,7 @@ func (obj ChatManager) UpdateGroup(db *gorm.DB, chat *models.Chat, data schemas.
 		chat.ImageID = &image.ID
 		chat.ImageObj = &image
 	}
-	db.Save(&chat)
+	db.Omit("UserObjs.*").Save(&chat)
 	return chat, errData
 }
 
@@ -187,10 +187,9 @@ func (obj ChatManager) GetUserGroup(db *gorm.DB, user models.User, id uuid.UUID,
 	chat := models.Chat{Ctype: choices.CGROUP, OwnerID: user.ID}
 	q := db
 	if len(detailedOpts) > 0 {
-		q = q.Scopes(ChatOwnerImageScope).Preload("UserObjs")
+		q = q.Scopes(ChatOwnerImageScope).Preload("UserObjs").Preload("UserObjs.AvatarObj")
 	}
 	q.Where(&chat).Take(&chat, id)
-	log.Println(chat)
 	return chat
 }
 

@@ -32,6 +32,11 @@ type Chat struct {
 	FileUploadData *utils.SignatureFormat `gorm:"-" json:"file_upload_data,omitempty"`
 }
 
+func (c *Chat) BeforeDelete (tx *gorm.DB) (err error) {
+	tx.Model(&c).Association("UserObjs").Clear()
+	return
+}
+
 func (c Chat) Init() Chat {
 	// Set Owner Details.
 	c.Owner = c.Owner.Init(c.OwnerObj)
