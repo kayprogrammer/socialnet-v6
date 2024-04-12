@@ -16,6 +16,7 @@ var SECRETKEY = []byte(cfg.SecretKey)
 
 type AccessTokenPayload struct {
 	UserId uuid.UUID `json:"user_id"`
+	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
@@ -24,10 +25,11 @@ type RefreshTokenPayload struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateAccessToken(userId uuid.UUID) string {
+func GenerateAccessToken(userId uuid.UUID, username string) string {
 	expirationTime := time.Now().Add(time.Duration(cfg.AccessTokenExpireMinutes) * time.Minute)
 	payload := AccessTokenPayload{
 		UserId: userId,
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			// In JWT, the expiry time is expressed as unix milliseconds
 			ExpiresAt: jwt.NewNumericDate(expirationTime),

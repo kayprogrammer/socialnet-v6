@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.7.0
+	github.com/fasthttp/websocket v1.5.7
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.19.0
@@ -15,6 +16,7 @@ require (
 	github.com/gosimple/slug v1.14.0
 	github.com/pborman/uuid v1.2.1
 	github.com/spf13/viper v1.18.2
+	github.com/stretchr/testify v1.8.4
 	github.com/swaggo/swag v1.16.3
 	golang.org/x/crypto v0.19.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
@@ -27,7 +29,7 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/creasty/defaults v1.5.1 // indirect
-	github.com/fasthttp/websocket v1.5.7 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
@@ -59,6 +61,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
