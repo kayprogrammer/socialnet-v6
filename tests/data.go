@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/routes"
+	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"gorm.io/gorm"
 )
 
@@ -100,92 +100,89 @@ func CreateCity(db *gorm.DB) models.City {
 func CreateFriend(db *gorm.DB, status choices.FriendStatusChoice) models.Friend {
 	verifiedUser := CreateTestVerifiedUser(db)
 	anotherVerifiedUser := CreateAnotherTestVerifiedUser(db)
-	friend := models.Friend{RequesterID: verifiedUser.ID, RequesteeID: anotherVerifiedUser.ID}
-	friend := friendManager.Create(db, verifiedUser, anotherVerifiedUser, status)
+	friend := models.Friend{RequesterID: verifiedUser.ID, RequesteeID: anotherVerifiedUser.ID, Status: status}
+	db.FirstOrCreate(&friend, friend)
+	friend.Requester = verifiedUser
+	friend.Requestee = anotherVerifiedUser
 	return friend
 }
 
-func CreateNotification(db *gorm.DB) *ent.Notification {
+func CreateNotification(db *gorm.DB) models.Notification {
 	user := CreateTestVerifiedUser(db)
 	text := "A new update is coming!"
-	notification := notificationManager.Create(db, nil, "ADMIN", []uuid.UUID{user.ID}, nil, nil, nil, &text)
+	notification := notificationManager.Create(db, nil, "ADMIN", []models.User{user}, nil, nil, nil, &text)
 	return notification
 }
 
 // ----------------------------------------------------------------------------
 
 // CHAT FIXTURES
-func CreateChat(db *gorm.DB) *ent.Chat {
+func CreateChat(db *gorm.DB) models.Chat {
 	verifiedUser := CreateTestVerifiedUser(db)
 	anotherVerifiedUser := CreateAnotherTestVerifiedUser(db)
 	chat := chatManager.GetDMChat(db, verifiedUser, anotherVerifiedUser)
-	if chat == nil {
-		chat = chatManager.Create(db, verifiedUser, "DM", []*ent.User{anotherVerifiedUser})
+	if chat.ID == nil {
+		chat = chatManager.Create(db, verifiedUser, "DM", []models.User{anotherVerifiedUser})
 	} else {
 		// Set useful related data
-		chat.Edges.Owner = verifiedUser
+		chat.OwnerObj = verifiedUser
 	}
-	chat.Edges.Users = []*ent.User{anotherVerifiedUser}
+	chat.UserObjs = []models.User{anotherVerifiedUser}
 	return chat
 }
 
-func CreateGroupChat(db *gorm.DB) *ent.Chat {
+func CreateGroupChat(db *gorm.DB) models.Chat {
 	verifiedUser := CreateTestVerifiedUser(db)
 	anotherVerifiedUser := CreateAnotherTestVerifiedUser(db)
 	chatManager.DropData(db)
 	dataToCreate := schemas.GroupChatCreateSchema{Name: "My New Group"}
-	chat := chatManager.CreateGroup(db, verifiedUser, []*ent.User{anotherVerifiedUser}, dataToCreate)
-	chat.Edges.Users = []*ent.User{anotherVerifiedUser}
+	chat := chatManager.CreateGroup(db, verifiedUser, []models.User{anotherVerifiedUser}, dataToCreate)
 	return chat
 }
 
-func CreateMessage(db *gorm.DB) *ent.Message {
+func CreateMessage(db *gorm.DB) models.Message {
 	messageManager.DropData(db)
 	chat := CreateChat(db)
 	text := "Hello Boss"
-	message := messageManager.Create(db, chat.Edges.Owner, chat, &text, nil)
+	message := messageManager.Create(db, chat.OwnerObj, chat, &text, nil)
 	return message
 }
 
 // ----------------------------------------------------------------------------
 
 // FEED FIXTURES
-func CreatePost(db *gorm.DB) *ent.Post {
+func CreatePost(db *gorm.DB) models.Post {
 	author := CreateTestVerifiedUser(db)
 	post := postManager.Create(db, author, schemas.PostInputSchema{Text: "This is a nice new platform."})
 	return post
 }
 
-func CreateReaction(db *gorm.DB) *ent.Reaction {
+func CreateReaction(db *gorm.DB) models.Reaction {
 	post := CreatePost(db)
-	reaction := reactionManager.Create(db, post.AuthorID, "POST", post.ID, "LIKE")
-	reaction.Edges.Post = post
-	reaction.Edges.User = post.Edges.Author
+	reaction := reactionManager.Create(db, post.AuthorObj, choices.FTPOST, &post, nil, nil, choices.RLIKE)
 	return reaction
 }
 
-func CreateComment(db *gorm.DB) *ent.Comment {
+func CreateComment(db *gorm.DB) models.Comment {
 	post := CreatePost(db)
-	comment := commentManager.Create(db, post.Edges.Author, post.ID, "Just a comment")
-	comment.Edges.Post = post
+	comment := commentManager.Create(db, post.AuthorObj, post, "Just a comment")
 	return comment
 }
 
-func CreateReply(db *gorm.DB) *ent.Reply {
+func CreateReply(db *gorm.DB) models.Reply {
 	comment := CreateComment(db)
-	reply := replyManager.Create(db, comment.Edges.Author, comment.ID, "Simple reply")
-	reply.Edges.Comment = comment
+	reply := replyManager.Create(db, comment.AuthorObj, comment, "Simple reply")
 	return reply
 }
 
 // ----------------------------------------------------------------------------
 
 // Utils
-func GetUserMap(user *ent.User) map[string]interface{} {
+func GetUserMap(user models.User) map[string]interface{} {
 	return map[string]interface{}{
-		"name":     schemas.FullName(user),
+		"name":     user.FullName(),
 		"username": user.Username,
-		"avatar":   nil,
+		"avatar":   user.GetAvatarUrl(),
 	}
 }
 
