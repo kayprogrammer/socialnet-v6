@@ -82,8 +82,9 @@ func CreateSingleTable(db *gorm.DB, model interface{}) {
 	db.AutoMigrate(&model)
 }
 
-func DropSingleTable(db *gorm.DB, model interface{}) {
+func DropAndCreateSingleTable(db *gorm.DB, model interface{}) {
 	db.Migrator().DropTable(&model)
+	db.AutoMigrate(&model)
 }
 
 func waitForDBConnection(t *testing.T, dsn string) *gorm.DB {

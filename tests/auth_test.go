@@ -8,15 +8,16 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/routes"
+	"github.com/kayprogrammer/socialnet-v6/schemas"
+	"github.com/kayprogrammer/socialnet-v6/utils"
 	"github.com/stretchr/testify/assert"
-
+	"gorm.io/gorm"
 )
 
-var (
-	otpManager  = managers.OtpManager{}
-)
 
-func register(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func register(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	t.Run("Register User", func(t *testing.T) {
 		url := fmt.Sprintf("%s/register", baseUrl)
 		validEmail := "testregisteruser@email.com"
@@ -56,14 +57,14 @@ func register(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 	})
 }
 
-func verifyEmail(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func verifyEmail(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	t.Run("Verify Email", func(t *testing.T) {
 		user := CreateTestUser(db)
 		otp := uint32(1111)
 
 		url := fmt.Sprintf("%s/verify-email", baseUrl)
 		emailOtpData := schemas.VerifyEmailRequestSchema{
-			Email: user.Email,
+			EmailRequestSchema: schemas.EmailRequestSchema{Email: user.Email},
 			Otp:   otp,
 		}
 
@@ -80,7 +81,9 @@ func verifyEmail(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 		assert.Equal(t, "Incorrect Otp", body["message"])
 
 		// Verify that the email verification succeeds with a valid otp
-		realOtp := otpManager.GetOrCreate(db, user.ID)
+		realOtp := models.Otp{UserId: user.ID}
+		db.Take(&realOtp, realOtp)
+		db.Save(&realOtp) // Create or save
 		emailOtpData.Otp = realOtp.Code
 		res = ProcessTestBody(t, app, url, "POST", emailOtpData)
 		assert.Equal(t, 200, res.StatusCode)
@@ -92,10 +95,10 @@ func verifyEmail(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 	})
 }
 
-func resendVerificationEmail(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func resendVerificationEmail(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	t.Run("Resend Verification Email", func(t *testing.T) {
 		// Drop User Data since the previous test uses it...
-		userManager.DropData(db)
+		DropAndCreateSingleTable(db, models.User{})
 		user := CreateTestUser(db)
 
 		url := fmt.Sprintf("%s/resend-verification-email", baseUrl)
@@ -115,7 +118,8 @@ func resendVerificationEmail(t *testing.T, app *fiber.App, db *ent.Client, baseU
 		assert.Equal(t, "Verification email sent", body["message"])
 
 		// Verify that a verified user cannot get a new email
-		user.Update().SetIsEmailVerified(true).SaveX(managers.Ctx)
+		user.IsEmailVerified = true
+		db.Save(&user)
 		res = ProcessTestBody(t, app, url, "POST", emailData)
 
 		assert.Equal(t, 200, res.StatusCode)
@@ -136,7 +140,7 @@ func resendVerificationEmail(t *testing.T, app *fiber.App, db *ent.Client, baseU
 	})
 }
 
-func sendPasswordResetOtp(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func sendPasswordResetOtp(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	t.Run("Send Password Reset Otp", func(t *testing.T) {
 
 		user := CreateTestVerifiedUser(db)
@@ -170,9 +174,9 @@ func sendPasswordResetOtp(t *testing.T, app *fiber.App, db *ent.Client, baseUrl 
 	})
 }
 
-func setNewPassword(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func setNewPassword(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	// Drop User data since the previous test uses the verified_user it...
-	userManager.DropData(db)
+	DropAndCreateSingleTable(db, models.User{})
 
 	t.Run("Set New Password", func(t *testing.T) {
 		user := CreateTestVerifiedUser(db)
@@ -180,7 +184,7 @@ func setNewPassword(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string
 		url := fmt.Sprintf("%s/set-new-password", baseUrl)
 		passwordResetData := schemas.SetNewPasswordSchema{
 			VerifyEmailRequestSchema: schemas.VerifyEmailRequestSchema{
-				Email: "invalid@example.com", // Invalid otp
+				EmailRequestSchema: schemas.EmailRequestSchema{Email: "invalid@example.com"}, // Invalid otp
 				Otp:   11111,                 // Invalid otp
 			},
 			Password: "newpassword",
@@ -211,7 +215,9 @@ func setNewPassword(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string
 		assert.Equal(t, "Incorrect Otp", body["message"])
 
 		// Verify that password reset succeeds
-		realOtp := otpManager.GetOrCreate(db, user.ID)
+		realOtp := models.Otp{UserId: user.ID}
+		db.Take(&realOtp, realOtp)
+		db.Save(&realOtp) // Create or save
 		passwordResetData.Otp = realOtp.Code
 		res = ProcessTestBody(t, app, url, "POST", passwordResetData)
 
@@ -224,7 +230,7 @@ func setNewPassword(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string
 	})
 }
 
-func login(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func login(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	t.Run("Login", func(t *testing.T) {
 		user := CreateTestUser(db)
 
@@ -258,7 +264,8 @@ func login(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 		assert.Equal(t, "Verify your email first", body["message"])
 
 		// Test for valid credentials and verified email address
-		user.Update().SetIsEmailVerified(true).SaveX(managers.Ctx)
+		user.IsEmailVerified = true
+		db.Save(&user)
 		res = ProcessTestBody(t, app, url, "POST", loginData)
 		// Assert response
 		assert.Equal(t, 201, res.StatusCode)
@@ -266,7 +273,7 @@ func login(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 		body = ParseResponseBody(t, res.Body).(map[string]interface{})
 		assert.Equal(t, "success", body["status"])
 		assert.Equal(t, "Login successful", body["message"])
-		user = userManager.GetById(db, user.ID) // Get updated user 
+		db.Take(&user, user.ID) // Get updated user 
 		expectedData := map[string]string{
 			"access":  *user.Access,
 			"refresh": *user.Refresh,
@@ -277,9 +284,9 @@ func login(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 	})
 }
 
-func refresh(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func refresh(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	// Drop User Data since the previous test uses the verified_user it...
-	userManager.DropData(db)
+	DropAndCreateSingleTable(db, models.User{})
 
 	t.Run("Refresh", func(t *testing.T) {
 		user := CreateTestVerifiedUser(db)
@@ -300,7 +307,11 @@ func refresh(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 		assert.Equal(t, "Refresh token is invalid or expired", body["message"])
 
 		// Test for valid refresh token
-		user = userManager.UpdateTokens(user, "whatever", auth.GenerateRefreshToken())
+		access := "whatever"
+		refresh := routes.GenerateRefreshToken()
+		user.Access = &access
+		user.Refresh = &refresh
+		db.Save(&user)
 		refreshTokenData.Refresh = *user.Refresh
 		res = ProcessTestBody(t, app, url, "POST", refreshTokenData)
 		// Assert response
@@ -309,7 +320,7 @@ func refresh(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 		body = ParseResponseBody(t, res.Body).(map[string]interface{})
 		assert.Equal(t, "success", body["status"])
 		assert.Equal(t, "Tokens refresh successful", body["message"])
-		user = userManager.GetById(db, user.ID) // Get updated user 
+		db.Take(&user, user.ID) // Get updated user 
 		expectedData := map[string]string{
 			"access":  *user.Access,
 			"refresh": *user.Refresh,
@@ -320,9 +331,9 @@ func refresh(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
 	})
 }
 
-func logout(t *testing.T, app *fiber.App, db *ent.Client, baseUrl string) {
+func logout(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	// Drop and Create User Table since the previous test uses the verified_user it...
-	userManager.DropData(db)
+	DropAndCreateSingleTable(db, models.User{})
 	t.Run("Logout", func(t *testing.T) {
 		url := fmt.Sprintf("%s/logout", baseUrl)
 		req := httptest.NewRequest("GET", url, nil)
@@ -358,7 +369,7 @@ func TestAuth(t *testing.T) {
 	os.Setenv("ENVIRONMENT", "TESTING")
 	app := fiber.New()
 	db := Setup(t, app)
-	BASEURL := "/api/v4/auth"
+	BASEURL := "/api/v6/auth"
 
 	// Run Auth Endpoint Tests
 	register(t, app, db, BASEURL)
@@ -371,6 +382,6 @@ func TestAuth(t *testing.T) {
 	refresh(t, app, db, BASEURL)
 
 	// Drop Tables and Close Connectiom
-	DropData(db)
+	DropTables(db)
 	CloseTestDatabase(db)
 }
