@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/config"
 	"github.com/kayprogrammer/socialnet-v6/models"
@@ -18,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func CreateTables(db *gorm.DB) {
@@ -94,7 +97,9 @@ func waitForDBConnection(t *testing.T, dsn string) *gorm.DB {
 
 	for i := 0; i < maxRetries; i++ {
 		t.Logf("Waiting for the database to be ready... Attempt %d", i+1)
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
+		})
 		if err == nil {
 			break
 		}
@@ -107,15 +112,16 @@ func waitForDBConnection(t *testing.T, dsn string) *gorm.DB {
 
 	// Add UUID extension
 	result := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-    if result.Error != nil {
-        log.Fatal("failed to create extension: " + result.Error.Error())
-    }
+	if result.Error != nil {
+		log.Fatal("failed to create extension: " + result.Error.Error())
+	}
 	return db
 }
 
 func SetupTestDatabase(t *testing.T) *gorm.DB {
-	cfg := config.GetConfig()
-    dsn := fmt.Sprintf(
+	cfg := config.GetConfig(true)
+
+	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		cfg.PostgresServer,
 		cfg.PostgresUser,
@@ -129,16 +135,18 @@ func SetupTestDatabase(t *testing.T) *gorm.DB {
 }
 
 func CloseTestDatabase(db *gorm.DB) {
-    sqlDB, err := db.DB()
-    if err != nil {
-        log.Fatal("Failed to get database connection: " + err.Error())
-    }
-    if err := sqlDB.Close(); err != nil {
-        log.Fatal("Failed to close database connection: " + err.Error())
-    }
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Failed to get database connection: " + err.Error())
+	}
+	if err := sqlDB.Close(); err != nil {
+		log.Fatal("Failed to close database connection: " + err.Error())
+	}
 }
 
 func Setup(t *testing.T, app *fiber.App) *gorm.DB {
+	os.Setenv("ENVIRONMENT", "TESTING")
+
 	// Set up the test database
 	db := SetupTestDatabase(t)
 
@@ -151,11 +159,11 @@ func Setup(t *testing.T, app *fiber.App) *gorm.DB {
 func ParseResponseBody(t *testing.T, b io.ReadCloser) interface{} {
 	body, _ := io.ReadAll(b)
 	// Parse the response body as JSON
-    responseBody := make(map[string]interface{})
-    err := json.Unmarshal(body, &responseBody)
-    if err != nil {
-        t.Errorf("error parsing response body as JSON: %s", err)
-    }
+	responseBody := make(map[string]interface{})
+	err := json.Unmarshal(body, &responseBody)
+	if err != nil {
+		t.Errorf("error parsing response body as JSON: %s", err)
+	}
 	return responseBody
 }
 

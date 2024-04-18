@@ -30,10 +30,10 @@ type Config struct {
 	CloudinaryCloudName       string `mapstructure:"CLOUDINARY_CLOUD_NAME"`
 	CloudinaryAPIKey          string `mapstructure:"CLOUDINARY_API_KEY"`
 	CloudinaryAPISecret       string `mapstructure:"CLOUDINARY_API_SECRET"`
-	SocketSecret		      string `mapstructure:"SOCKET_SECRET"`
+	SocketSecret              string `mapstructure:"SOCKET_SECRET"`
 }
 
-func GetConfig() (config Config) {
+func GetConfig(testOpts ...bool) (config Config) {
 	viper.AddConfigPath(".")
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")

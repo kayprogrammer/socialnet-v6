@@ -28,7 +28,6 @@ func register(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 			Password:       "testregisteruserpassword",
 			TermsAgreement: true,
 		}
-
 		res := ProcessTestBody(t, app, url, "POST", userData)
 
 		// Assert Status code
@@ -52,7 +51,7 @@ func register(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 		assert.Equal(t, utils.ERR_INVALID_ENTRY, body["code"])
 		assert.Equal(t, "Invalid Entry", body["message"])
 		expectedData = make(map[string]interface{})
-		expectedData["email"] = "Email already registered!"
+		expectedData["email"] = "Email already taken!"
 		assert.Equal(t, expectedData, body["data"].(map[string]interface{}))
 	})
 }

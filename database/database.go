@@ -27,13 +27,13 @@ func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,
+		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		log.Fatal("Failed to connect to the database! \n", err.Error())
 		os.Exit(2)
 	}
 	log.Println("Connected to the database successfully")
-	db.Logger = logger.Default.LogMode(logger.Info)
 
 	if len(logs) == 0 { 
 		// When extra parameter is passed, don't do the following (from sockets)
