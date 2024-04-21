@@ -138,7 +138,6 @@ func (endpoint Endpoint) UpdateProfile(c *fiber.Ctx) error {
 	}
 	// Set values & save
 	user = data.SetValues(user)
-	fmt.Println("Haaalalala")
 	db.Save(&user)
 
 	// Return repsonse

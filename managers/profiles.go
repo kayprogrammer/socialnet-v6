@@ -75,7 +75,7 @@ func (obj FriendManager) GetRequesteeAndFriendObj(db *gorm.DB, user *models.User
 }
 
 func (obj FriendManager) DropData(db *gorm.DB) {
-	db.Delete(&models.Friend{})
+	db.Delete(&[]models.Friend{})
 }
 
 // ----------------------------------

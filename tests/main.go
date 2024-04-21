@@ -18,7 +18,7 @@ import (
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/routes"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -97,7 +97,7 @@ func waitForDBConnection(t *testing.T, dsn string) *gorm.DB {
 
 	for i := 0; i < maxRetries; i++ {
 		t.Logf("Waiting for the database to be ready... Attempt %d", i+1)
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		db, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
 		})
 		if err == nil {
@@ -105,6 +105,17 @@ func waitForDBConnection(t *testing.T, dsn string) *gorm.DB {
 		}
 		time.Sleep(1 * time.Second)
 	}
+
+	// for i := 0; i < maxRetries; i++ {
+	// 	t.Logf("Waiting for the database to be ready... Attempt %d", i+1)
+	// 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	// 		Logger: logger.Default.LogMode(logger.Silent),
+	// 	})
+	// 	if err == nil {
+	// 		break
+	// 	}
+	// 	time.Sleep(1 * time.Second)
+	// }
 
 	if err != nil {
 		t.Fatalf("Failed to connect to the test database: %v", err)
