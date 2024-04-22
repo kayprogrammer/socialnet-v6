@@ -12,8 +12,68 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+func CreateTables (db *gorm.DB) {
+	db.AutoMigrate(
+		// general
+		&models.File{},
+		&models.SiteDetail{},
+
+		// accounts
+		&models.Country{},
+		&models.Region{},
+		&models.City{},
+		&models.User{},
+		&models.Otp{},
+
+		// feed
+		&models.Post{},
+		&models.Comment{},
+		&models.Reply{},
+		&models.Reaction{},
+
+		// profiles
+		&models.Friend{},
+		&models.Notification{},
+
+		// chat
+		&models.Chat{},
+		&models.Message{},
+	)
+	db.Exec("CREATE UNIQUE INDEX unique_requester_requestee ON friends(LEAST(requester_id, requestee_id), GREATEST(requester_id, requestee_id))")
+}
+
+func DropTables(db *gorm.DB) {
+	// Drop Tables
+	db.Migrator().DropTable(
+		// general
+		&models.File{},
+		&models.SiteDetail{},
+
+		// accounts
+		&models.Country{},
+		&models.Region{},
+		&models.City{},
+		&models.User{},
+		&models.Otp{},
+
+		// feed
+		&models.Post{},
+		&models.Comment{},
+		&models.Reply{},
+		&models.Reaction{},
+
+		// profiles
+		&models.Friend{},
+		&models.Notification{},
+
+		// chat
+		&models.Chat{},
+		&models.Message{},
+	)
+}
+
 func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
-	dsnTemplate := "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s"
+	dsnTemplate := "host=%s user=%s password=%s dbname=%s port=%s TimeZone=%s"
 	dsn := fmt.Sprintf(
 		dsnTemplate,
 		cfg.PostgresServer,
@@ -21,7 +81,6 @@ func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
 		cfg.PostgresPassword,
 		cfg.PostgresDB,
 		cfg.PostgresPort,
-		"disable",
 		"UTC",
 	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -46,32 +105,7 @@ func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
 		}
 
 		// Add Migrations
-		db.AutoMigrate(
-			// general
-			&models.SiteDetail{},
-
-			// accounts
-			&models.Country{},
-			&models.Region{},
-			&models.City{},
-			&models.User{},
-			&models.Otp{},
-
-			// feed
-			&models.Post{},
-			&models.Comment{},
-			&models.Reply{},
-			&models.Reaction{},
-
-			// profiles
-			&models.Friend{},
-			&models.Notification{},
-
-			// chat
-			&models.Chat{},
-			&models.Message{},
-		)
-		db.Exec("CREATE UNIQUE INDEX unique_requester_requestee ON friends(LEAST(requester_id, requestee_id), GREATEST(requester_id, requestee_id))")
+		CreateTables(db)
 	}
 	return db
 }

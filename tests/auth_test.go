@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/kayprogrammer/socialnet-v6/database"
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/routes"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
@@ -381,6 +382,6 @@ func TestAuth(t *testing.T) {
 	refresh(t, app, db, BASEURL)
 
 	// Drop Tables and Close Connectiom
-	DropTables(db)
+	database.DropTables(db)
 	CloseTestDatabase(db)
 }

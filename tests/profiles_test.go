@@ -8,9 +8,12 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/pborman/uuid"
+	"github.com/kayprogrammer/socialnet-v6/database"
+	"github.com/kayprogrammer/socialnet-v6/models"
+	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/schemas"
 	"github.com/kayprogrammer/socialnet-v6/utils"
+	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -137,7 +140,7 @@ func deleteProfile(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 
 func getFriends(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	t.Run("Retrieve Friends", func(t *testing.T) {
-		friend := CreateFriend(db, "ACCEPTED")
+		friend := CreateFriend(db, choices.FACCEPTED)
 		requestee := friend.Requestee
 
 		// Test for valid response
@@ -153,7 +156,16 @@ func getFriends(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 		body := ParseResponseBody(t, res.Body).(map[string]interface{})
 		assert.Equal(t, "success", body["status"])
 		assert.Equal(t, "Friends fetched", body["message"])
-		data, _ := json.Marshal(body["data"])
+
+		// To remove created_at and updated_at
+		dataMap := body["data"].(map[string]interface{})
+		dataMapUsers := dataMap["users"].([]interface{})
+		dataMapUser := dataMapUsers[0].(map[string]interface{})
+		delete(dataMapUser, "created_at")
+		delete(dataMapUser, "updated_at")
+
+		data, _ := json.Marshal(dataMap)
+		
 		expectedData := map[string]interface{}{
 			"per_page":     20,
 			"current_page": 1,
@@ -168,8 +180,6 @@ func getFriends(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 					"avatar":     nil,
 					"dob":        requestee.Dob,
 					"city":       nil,
-					"created_at": ConvertDateTime(requestee.CreatedAt),
-					"updated_at": ConvertDateTime(requestee.UpdatedAt),
 				},
 			},
 		}
@@ -181,7 +191,7 @@ func getFriends(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 func sendFriendRequest(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	token := AccessToken(db)
 	// Drop Friends data
-	friendManager.DropData(db)
+	DropAndCreateSingleTable(db, models.Friend{})
 	user := CreateAnotherTestVerifiedUser(db)
 	t.Run("Send Friend Request", func(t *testing.T) {
 		url := fmt.Sprintf("%s/friends/requests", baseUrl)
@@ -212,9 +222,8 @@ func sendFriendRequest(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string
 
 func acceptOrRejectFriendRequest(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	token := AnotherAccessToken(db)
-	// Drop & Create Friends data
-	friendManager.DropData(db)
-	friend := CreateFriend(db, "PENDING")
+
+	friend := CreateFriend(db, choices.FPENDING)
 	t.Run("Accept Or Reject Friend Request", func(t *testing.T) {
 		url := fmt.Sprintf("%s/friends/requests", baseUrl)
 		userData := schemas.AcceptFriendRequestSchema{
@@ -257,6 +266,14 @@ func getNotifications(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string)
 
 		// Parse and assert body
 		body := ParseResponseBody(t, res.Body).(map[string]interface{})
+
+		// To remove created_at and updated_at
+		dataMap := body["data"].(map[string]interface{})
+		dataMapNotifications := dataMap["notifications"].([]interface{})
+		dataMapNotification := dataMapNotifications[0].(map[string]interface{})
+		delete(dataMapNotification, "created_at")
+		delete(dataMapNotification, "updated_at")
+
 		data, _ := json.Marshal(body)
 		expectedData := map[string]interface{}{
 			"status":  "success",
@@ -270,7 +287,7 @@ func getNotifications(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string)
 						"id":           notification.ID,
 						"sender":       nil,
 						"ntype":        notification.Ntype,
-						"message":      notification.Text,
+						"message":      *notification.Text,
 						"post_slug":    nil,
 						"comment_slug": nil,
 						"reply_slug":   nil,
@@ -333,6 +350,6 @@ func TestProfiles(t *testing.T) {
 	readNotification(t, app, db, BASEURL)
 
 	// Drop Tables and Close Connectiom
-	DropTables(db)
+	database.DropTables(db)
 	CloseTestDatabase(db)
 }

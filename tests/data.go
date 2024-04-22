@@ -98,6 +98,7 @@ func CreateCity(db *gorm.DB) models.City {
 }
 
 func CreateFriend(db *gorm.DB, status choices.FriendStatusChoice) models.Friend {
+	DropAndCreateSingleTable(db, models.Friend{})
 	verifiedUser := CreateTestVerifiedUser(db)
 	anotherVerifiedUser := CreateAnotherTestVerifiedUser(db)
 	friend := models.Friend{RequesterID: verifiedUser.ID, RequesteeID: anotherVerifiedUser.ID, Status: status}
@@ -134,14 +135,14 @@ func CreateChat(db *gorm.DB) models.Chat {
 func CreateGroupChat(db *gorm.DB) models.Chat {
 	verifiedUser := CreateTestVerifiedUser(db)
 	anotherVerifiedUser := CreateAnotherTestVerifiedUser(db)
-	chatManager.DropData(db)
+	DropAndCreateSingleTable(db, models.Chat{})
 	dataToCreate := schemas.GroupChatCreateSchema{Name: "My New Group"}
 	chat := chatManager.CreateGroup(db, verifiedUser, []models.User{anotherVerifiedUser}, dataToCreate)
 	return chat
 }
 
 func CreateMessage(db *gorm.DB) models.Message {
-	messageManager.DropData(db)
+	DropAndCreateSingleTable(db, models.Message{})
 	chat := CreateChat(db)
 	text := "Hello Boss"
 	message := messageManager.Create(db, chat.OwnerObj, chat, &text, nil)
