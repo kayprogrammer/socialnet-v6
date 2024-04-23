@@ -83,7 +83,7 @@ func (endpoint Endpoint) RetrievePost(c *fiber.Ctx) error {
 	}
 	response := schemas.PostResponseSchema{
 		ResponseSchema: SuccessResponse("Post Detail fetched"),
-		Data:           *post,
+		Data:           post.Init(),
 	}
 	return c.Status(200).JSON(response)
 }

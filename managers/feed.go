@@ -54,7 +54,7 @@ func (obj PostManager) GetBySlug(db *gorm.DB, slug string, opts ...bool) (*model
 	post := models.Post{FeedAbstract: models.FeedAbstract{Slug: slug}}
 	q := db.Scopes(AuthorReactionScope)
 	if len(opts) > 0 { // Detailed param provided.
-		q = db.Preload("Comments")
+		q = q.Preload("Comments")
 	}
 	q.Take(&post, post)
 	if post.ID == nil {
@@ -157,7 +157,7 @@ func (obj ReplyManager) Create(db *gorm.DB, author models.User, comment models.C
 	base := models.BaseModel{ID: id}
 	sub_base := models.FeedAbstract{BaseModel: base, Slug: slug, AuthorID: author.ID, AuthorObj: author, Text: text}
 
-	reply := models.Reply{FeedAbstract: sub_base, CommentID: comment.ID}
+	reply := models.Reply{FeedAbstract: sub_base, CommentID: comment.ID, CommentObj: comment}
 	db.Create(&reply)
 	return reply
 }
