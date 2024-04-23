@@ -115,3 +115,12 @@ func ProcessTestBody(t *testing.T, app *fiber.App, url string, method string, bo
 	}
 	return res
 }
+
+func RemoveCreatedAndUpdated (body map[string]interface{}, dataType string) {
+	// To remove created_at and updated_at
+	dataMap := body["data"].(map[string]interface{})
+	dataMapValues := dataMap[dataType].([]interface{})
+	dataMapValue := dataMapValues[0].(map[string]interface{})
+	delete(dataMapValue, "created_at")
+	delete(dataMapValue, "updated_at")
+}

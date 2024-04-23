@@ -157,14 +157,8 @@ func getFriends(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 		assert.Equal(t, "success", body["status"])
 		assert.Equal(t, "Friends fetched", body["message"])
 
-		// To remove created_at and updated_at
-		dataMap := body["data"].(map[string]interface{})
-		dataMapUsers := dataMap["users"].([]interface{})
-		dataMapUser := dataMapUsers[0].(map[string]interface{})
-		delete(dataMapUser, "created_at")
-		delete(dataMapUser, "updated_at")
-
-		data, _ := json.Marshal(dataMap)
+		RemoveCreatedAndUpdated(body, "users")
+		data, _ := json.Marshal(body["data"])
 		
 		expectedData := map[string]interface{}{
 			"per_page":     20,
@@ -266,14 +260,7 @@ func getNotifications(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string)
 
 		// Parse and assert body
 		body := ParseResponseBody(t, res.Body).(map[string]interface{})
-
-		// To remove created_at and updated_at
-		dataMap := body["data"].(map[string]interface{})
-		dataMapNotifications := dataMap["notifications"].([]interface{})
-		dataMapNotification := dataMapNotifications[0].(map[string]interface{})
-		delete(dataMapNotification, "created_at")
-		delete(dataMapNotification, "updated_at")
-
+		RemoveCreatedAndUpdated(body, "notifications")
 		data, _ := json.Marshal(body)
 		expectedData := map[string]interface{}{
 			"status":  "success",
