@@ -65,7 +65,7 @@ func (obj ChatManager) Create(db *gorm.DB, owner models.User, ctype choices.Chat
 	if len(recipientsOpts) > 0 {
 		chat.UserObjs = recipientsOpts[0]
 	}
-	db.Create(&chat)
+	db.Omit("UserObjs.*").Create(&chat)
 	return chat
 }
 

@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	friendManager       = managers.FriendManager{}
 	notificationManager = managers.NotificationManager{}
 	chatManager         = managers.ChatManager{}
 	messageManager      = managers.MessageManager{}
@@ -39,10 +38,10 @@ func CreateTestUser(db *gorm.DB) models.User {
 
 func CreateTestVerifiedUser(db *gorm.DB) models.User {
 	user := models.User{
-		FirstName: "Test",
-		LastName:  "Verified",
-		Email:     "testverifieduser@example.com",
-		Password:  "testpassword",
+		FirstName:       "Test",
+		LastName:        "Verified",
+		Email:           "testverifieduser@example.com",
+		Password:        "testpassword",
 		IsEmailVerified: true,
 	}
 	db.FirstOrCreate(&user, models.User{Email: user.Email})
@@ -51,10 +50,10 @@ func CreateTestVerifiedUser(db *gorm.DB) models.User {
 
 func CreateAnotherTestVerifiedUser(db *gorm.DB) models.User {
 	user := models.User{
-		FirstName: "AnotherTest",
-		LastName:  "UserVerified",
-		Email:     "anothertestverifieduser@example.com",
-		Password:  "testpassword",
+		FirstName:       "AnotherTest",
+		LastName:        "UserVerified",
+		Email:           "anothertestverifieduser@example.com",
+		Password:        "testpassword",
 		IsEmailVerified: true,
 	}
 	db.FirstOrCreate(&user, models.User{Email: user.Email})
@@ -123,7 +122,7 @@ func CreateChat(db *gorm.DB) models.Chat {
 	anotherVerifiedUser := CreateAnotherTestVerifiedUser(db)
 	chat := chatManager.GetDMChat(db, verifiedUser, anotherVerifiedUser)
 	if chat.ID == nil {
-		chat = chatManager.Create(db, verifiedUser, "DM", []models.User{anotherVerifiedUser})
+		chat = chatManager.Create(db, verifiedUser, choices.CDM, []models.User{anotherVerifiedUser})
 	} else {
 		// Set useful related data
 		chat.OwnerObj = verifiedUser
