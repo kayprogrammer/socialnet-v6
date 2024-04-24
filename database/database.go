@@ -12,8 +12,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func CreateTables (db *gorm.DB) {
-	db.AutoMigrate(
+func Models() []interface{} {
+	return []interface{}{
 		// general
 		&models.File{},
 		&models.SiteDetail{},
@@ -38,38 +38,30 @@ func CreateTables (db *gorm.DB) {
 		// chat
 		&models.Chat{},
 		&models.Message{},
-	)
+	}
+}
+
+func MakeMigrations(db *gorm.DB) {
+	models := Models()
+	for _, model := range models {
+        db.AutoMigrate(model)
+    }
 	db.Exec("CREATE UNIQUE INDEX unique_requester_requestee ON friends(LEAST(requester_id, requestee_id), GREATEST(requester_id, requestee_id))")
+}
+
+func CreateTables(db *gorm.DB) {
+	models := Models()
+	for _, model := range models {
+        db.Migrator().CreateTable(model)
+    }
 }
 
 func DropTables(db *gorm.DB) {
 	// Drop Tables
-	db.Migrator().DropTable(
-		// general
-		&models.File{},
-		&models.SiteDetail{},
-
-		// accounts
-		&models.Country{},
-		&models.Region{},
-		&models.City{},
-		&models.User{},
-		&models.Otp{},
-
-		// feed
-		&models.Post{},
-		&models.Comment{},
-		&models.Reply{},
-		&models.Reaction{},
-
-		// profiles
-		&models.Friend{},
-		&models.Notification{},
-
-		// chat
-		&models.Chat{},
-		&models.Message{},
-	)
+	models := Models()
+	for _, model := range models {
+        db.Migrator().DropTable(model)
+    }
 }
 
 func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
@@ -105,7 +97,7 @@ func ConnectDb(cfg config.Config, logs...bool) *gorm.DB {
 		}
 
 		// Add Migrations
-		CreateTables(db)
+		MakeMigrations(db)
 	}
 	return db
 }
