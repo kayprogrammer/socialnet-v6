@@ -167,7 +167,7 @@ func (obj ChatManager) UpdateGroup(db *gorm.DB, chat *models.Chat, data schemas.
 
 func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{}
-	db.Model(&models.Chat{}).Where("id = ?", id).Where(db.Where(models.Chat{OwnerID: user.ID}).
+	db.Model(&models.Chat{}).Where("chats.id = ?", id).Where(db.Where(models.Chat{OwnerID: user.ID}).
 		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID))).
 		Take(&chat)
 	return chat
@@ -175,7 +175,7 @@ func (obj ChatManager) GetSingleUserChat(db *gorm.DB, user models.User, id uuid.
 
 func (obj ChatManager) GetSingleUserChatFullDetails(db *gorm.DB, user models.User, id uuid.UUID) models.Chat {
 	chat := models.Chat{} // Wahala wa o
-	db.Model(&models.Chat{}).Where("id = ?", id).Where(db.Where(models.Chat{OwnerID: user.ID}).
+	db.Model(&models.Chat{}).Where("chats.id = ?", id).Where(db.Where(models.Chat{OwnerID: user.ID}).
 		Or("chats.id IN (?)", db.Table("chat_users").Select("chat_id").Where("user_id = ?", user.ID))).
 		Scopes(ChatOwnerImageScope, ChatPreloadMessagesScope).
 		Preload("UserObjs").
