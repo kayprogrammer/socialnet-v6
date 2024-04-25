@@ -3,7 +3,6 @@ package tests
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -115,7 +114,6 @@ func getChatMessages(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) 
 
 		// Parse and assert body
 		body = ParseResponseBody(t, res.Body).(map[string]interface{})
-		log.Println(body)
 		dataMap := body["data"].(map[string]interface{})
 		chatMap := dataMap["chat"].(map[string]interface{})
 		messagesMap := dataMap["messages"].(map[string]interface{})

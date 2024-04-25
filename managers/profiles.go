@@ -1,8 +1,6 @@
 package managers
 
 import (
-	"log"
-
 	"github.com/kayprogrammer/socialnet-v6/models"
 	"github.com/kayprogrammer/socialnet-v6/models/choices"
 	"github.com/kayprogrammer/socialnet-v6/utils"
@@ -157,7 +155,6 @@ func (obj NotificationManager) IsAmongReceivers(db *gorm.DB, notificationID uuid
 	}
 
 	// Check if user in notification receivers
-	log.Println(notification.ID, notification.Receivers)
 	found := false
 	for _, item := range notification.Receivers {
 		if item.ID.String() == receiverID.String() {

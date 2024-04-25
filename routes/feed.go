@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/kayprogrammer/socialnet-v6/managers"
 	"github.com/kayprogrammer/socialnet-v6/models"
@@ -448,7 +446,6 @@ func (endpoint Endpoint) CreateReply(c *fiber.Ctx) error {
 	// Created & Send Notification
 	if user.ID.String() != comment.AuthorID.String() {
 		notification := notificationManager.Create(db, user, choices.NREPLY, []models.User{comment.AuthorObj}, nil, nil, &reply, nil)
-		log.Println(notification)
 		SendNotificationInSocket(c, notification, nil, nil)
 	}
 
