@@ -45,7 +45,7 @@ func sendMessage(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 	token := AccessToken(db)
 	t.Run("Send Message", func(t *testing.T) {
 		url := baseUrl
-		invalidUUID := uuid.NewUUID()
+		invalidUUID := uuid.NIL
 		text := "JESUS is KING"
 		messageData := schemas.MessageCreateSchema{ChatID: &invalidUUID, Text: &text}
 		// Test for valid response for invalid chat id
@@ -86,12 +86,12 @@ func sendMessage(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
 }
 
 func getChatMessages(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) {
+	token := AccessToken(db)
 	message := CreateMessage(db)
 	chat := message.ChatObj
 	owner := chat.OwnerObj
-	token := AccessToken(db)
 	t.Run("Retrieve Chat Messages", func(t *testing.T) {
-		invalidChatID := uuid.New()
+		invalidChatID := uuid.NIL
 		url := fmt.Sprintf("%s/%s", baseUrl, invalidChatID)
 		req := httptest.NewRequest("GET", url, nil)
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -115,6 +115,7 @@ func getChatMessages(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) 
 
 		// Parse and assert body
 		body = ParseResponseBody(t, res.Body).(map[string]interface{})
+		log.Println(body)
 		dataMap := body["data"].(map[string]interface{})
 		chatMap := dataMap["chat"].(map[string]interface{})
 		messagesMap := dataMap["messages"].(map[string]interface{})
@@ -123,7 +124,6 @@ func getChatMessages(t *testing.T, app *fiber.App, db *gorm.DB, baseUrl string) 
 		data, _ := json.Marshal(body)
 		ownerData := GetUserMap(owner)
 		recipientUser := chat.UserObjs[0]
-		log.Println("Yaaaaaaaa: ", recipientUser)
 
 		expectedData := map[string]interface{}{
 			"status":  "success",

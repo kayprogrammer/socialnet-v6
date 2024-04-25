@@ -114,7 +114,7 @@ type Message struct {
 
 func (m *Message) AfterCreate(tx *gorm.DB) (err error) {
 	// Update Chat to intentionally update the updatedAt
-	tx.Save(&m.ChatObj)
+	tx.Omit("UserObjs.*").Save(&m.ChatObj)
 	return
 }
 
