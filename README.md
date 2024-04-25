@@ -5,7 +5,7 @@ A realtime social networking API built with Fiber & GORM ORM
 
 
 #### FIBER DOCS: [Documentation](https://docs.gofiber.io/)
-#### GORM DOCS: [Documentation](https://entgo.io/docs/getting-started/)
+#### GORM DOCS: [Documentation](https://gorm.io/docs/)
 #### PG ADMIN: [Documentation](https://pgadmin.org) 
 
 
@@ -47,7 +47,7 @@ OR
     $ make test
 ```
 
-<!-- ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp1.png?raw=true)
+![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp1.png?raw=true)
 ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp2.png?raw=true)
 ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp3.png?raw=true)
 ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp4.png?raw=true)
@@ -56,4 +56,3 @@ OR
 ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp7.png?raw=true)
 ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp8.png?raw=true)
 ![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp9.png?raw=true)
-![alt text](https://github.com/kayprogrammer/socialnet-v6/blob/main/display/disp10.png?raw=true) -->
